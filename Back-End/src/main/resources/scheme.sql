@@ -58,5 +58,5 @@ CREATE TABLE options (
     name VARCHAR(100) NOT NULL,
     add_price INT NOT NULL,
     FOREIGN KEY (company_id) REFERENCES companies(id),
-    FOREIGN KEY (category_id) REFERENCES products(id)
+    FOREIGN KEY (category_id) REFERENCES categories(id)
 );

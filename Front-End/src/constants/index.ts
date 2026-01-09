@@ -135,3 +135,7 @@ export const HERO_STATS = [
 export const HERO_IMAGE_URL = 'https://images.unsplash.com/photo-1603430416807-87dd6f9538d0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjB3aW5kb3clMjBkb29yJTIwaW50ZXJpb3J8ZW58MXx8fHwxNzY2OTIxMDAzfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral';
 
 
+
+
+
+

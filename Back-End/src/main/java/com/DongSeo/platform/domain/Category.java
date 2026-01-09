@@ -25,6 +25,10 @@ public class Category {
     @Column(nullable = false)
     private String code;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    private Category parent; // 메인 카테고리인 경우 null, 세부 카테고리인 경우 부모 카테고리
+
     public Category(String code, Company company, String name) {
         this.company = company;
         this.name = name;

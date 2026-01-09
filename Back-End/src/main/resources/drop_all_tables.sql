@@ -10,3 +10,7 @@ DROP TABLE IF EXISTS companies;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
+
+
+
+

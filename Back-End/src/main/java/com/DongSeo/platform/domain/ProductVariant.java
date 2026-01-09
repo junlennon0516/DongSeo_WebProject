@@ -24,4 +24,7 @@ public class ProductVariant {
 
     @Column(nullable = false)
     private Integer price;
+
+    @Column(nullable = true)
+    private String note; // 메모/비고
 }

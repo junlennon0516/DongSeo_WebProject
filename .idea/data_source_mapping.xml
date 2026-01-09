@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourcePerFileMappings">
+    <file url="file://$APPLICATION_CONFIG_DIR$/consoles/db/418039ce-2e10-4919-ab30-e2c8ddd4a952/console.sql" value="418039ce-2e10-4919-ab30-e2c8ddd4a952" />
+    <file url="file://$APPLICATION_CONFIG_DIR$/consoles/db/418039ce-2e10-4919-ab30-e2c8ddd4a952/console_1.sql" value="418039ce-2e10-4919-ab30-e2c8ddd4a952" />
+    <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/data.sql" value="418039ce-2e10-4919-ab30-e2c8ddd4a952" />
     <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/drop_all_tables.sql" value="418039ce-2e10-4919-ab30-e2c8ddd4a952" />
+    <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/fix_schema.sql" value="418039ce-2e10-4919-ab30-e2c8ddd4a952" />
     <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/fix_schema_simple.sql" value="418039ce-2e10-4919-ab30-e2c8ddd4a952" />
+    <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/scheme.sql" value="418039ce-2e10-4919-ab30-e2c8ddd4a952" />
   </component>
 </project>

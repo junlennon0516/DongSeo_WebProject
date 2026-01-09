@@ -19,3 +19,7 @@ ALTER TABLE price_matrix MODIFY COLUMN product_id BIGINT NOT NULL;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
+
+
+
+

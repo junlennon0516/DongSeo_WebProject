@@ -7,17 +7,22 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: none
     show-sql: true
     open-in-view: false
     defer-datasource-initialization: true
     properties:
       hibernate:
         format_sql: true
+        jdbc:
+          time_zone: Asia/Seoul
+        dialect: org.hibernate.dialect.MySQLDialect
+        physical_naming_strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
 
   sql:
     init:
       mode: always
+      schema-locations: classpath:fix_schema.sql
       data-locations: classpath:data.sql
       separator: ;
-      continue-on-error: false
+      continue-on-error: true

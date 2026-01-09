@@ -21,6 +21,10 @@ public class Option {
     @JoinColumn(name = "category_id") // Null이면 전체 공통 옵션
     private Category category;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id") // Null이면 카테고리 전체 또는 전체 공통 옵션
+    private Product product;
+
     @Column(nullable = false)
     private String name;
 

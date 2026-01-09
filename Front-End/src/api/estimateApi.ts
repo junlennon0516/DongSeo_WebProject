@@ -48,6 +48,13 @@ export interface EstimateResponse {
   totalPrice: number;
 }
 
+export interface ProductVariant {
+  id: number;
+  specName: string;
+  typeName: string;
+  price: number;
+}
+
 // 서버 연결 확인
 export async function checkServerConnection(): Promise<boolean> {
   try {
@@ -58,28 +65,28 @@ export async function checkServerConnection(): Promise<boolean> {
   }
 }
 
-// 카테고리 목록 조회
+// 메인 카테고리 목록 조회
 export async function fetchCategories(companyId: number = 1): Promise<Category[]> {
   try {
     const url = `${API_BASE_URL}/categories?companyId=${companyId}`;
-    console.log('카테고리 조회 요청:', url);
+    console.log('메인 카테고리 조회 요청:', url);
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
     });
-    console.log('카테고리 조회 응답 상태:', response.status);
+    console.log('메인 카테고리 조회 응답 상태:', response.status);
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('카테고리 조회 실패:', errorText);
-      throw new Error(`카테고리 조회 실패 (${response.status}): ${errorText}`);
+      console.error('메인 카테고리 조회 실패:', errorText);
+      throw new Error(`메인 카테고리 조회 실패 (${response.status}): ${errorText}`);
     }
     const data = await response.json();
-    console.log('카테고리 조회 성공:', data);
+    console.log('메인 카테고리 조회 성공:', data);
     return data;
   } catch (error: any) {
-    console.error('카테고리 조회 에러:', error);
+    console.error('메인 카테고리 조회 에러:', error);
     if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
       throw new Error('백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요. (http://localhost:8080)');
     }
@@ -87,36 +94,116 @@ export async function fetchCategories(companyId: number = 1): Promise<Category[]
   }
 }
 
+// 세부 카테고리 목록 조회
+export async function fetchSubCategories(parentId: number): Promise<Category[]> {
+  try {
+    const url = `${API_BASE_URL}/subcategories?parentId=${parentId}`;
+    console.log('세부 카테고리 조회 요청:', url);
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    console.log('세부 카테고리 조회 응답 상태:', response.status);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('세부 카테고리 조회 실패:', errorText);
+      throw new Error(`세부 카테고리 조회 실패 (${response.status}): ${errorText}`);
+    }
+    const data = await response.json();
+    console.log('세부 카테고리 조회 성공:', data);
+    return data;
+  } catch (error: any) {
+    console.error('세부 카테고리 조회 에러:', error);
+    throw error;
+  }
+}
+
 // 카테고리별 제품 목록 조회
 export async function fetchProducts(categoryId: number): Promise<Product[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}/products?categoryId=${categoryId}`);
+    const url = `${API_BASE_URL}/products?categoryId=${categoryId}`;
+    console.log('제품 조회 요청:', url);
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    console.log('제품 조회 응답 상태:', response.status);
     if (!response.ok) {
-      throw new Error(`제품 조회 실패 (${response.status})`);
+      const errorText = await response.text();
+      console.error('제품 조회 실패:', errorText);
+      throw new Error(`제품 조회 실패 (${response.status}): ${errorText}`);
     }
-    return response.json();
+    const data = await response.json();
+    console.log('제품 조회 성공:', data);
+    return data;
   } catch (error: any) {
+    console.error('제품 조회 에러:', error);
     if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-      throw new Error('백엔드 서버에 연결할 수 없습니다.');
+      throw new Error('백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요. (http://localhost:8080)');
     }
     throw error;
   }
 }
 
-// 카테고리별 옵션 목록 조회
-export async function fetchOptions(categoryId: number | null, companyId: number = 1): Promise<Option[]> {
+// 제품별 옵션 목록 조회
+export async function fetchOptions(productId: number | null, companyId: number = 1): Promise<Option[]> {
   try {
-    const url = categoryId 
-      ? `${API_BASE_URL}/options?categoryId=${categoryId}&companyId=${companyId}`
+    const url = productId 
+      ? `${API_BASE_URL}/options?productId=${productId}&companyId=${companyId}`
       : `${API_BASE_URL}/options?companyId=${companyId}`;
-    const response = await fetch(url);
+    console.log('옵션 조회 요청:', url);
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    console.log('옵션 조회 응답 상태:', response.status);
     if (!response.ok) {
-      throw new Error(`옵션 조회 실패 (${response.status})`);
+      const errorText = await response.text();
+      console.error('옵션 조회 실패:', errorText);
+      throw new Error(`옵션 조회 실패 (${response.status}): ${errorText}`);
     }
-    return response.json();
+    const data = await response.json();
+    console.log('옵션 조회 성공:', data);
+    return data;
   } catch (error: any) {
+    console.error('옵션 조회 에러:', error);
     if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-      throw new Error('백엔드 서버에 연결할 수 없습니다.');
+      throw new Error('백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요. (http://localhost:8080)');
+    }
+    throw error;
+  }
+}
+
+// 제품별 variants 목록 조회
+export async function fetchVariants(productId: number): Promise<ProductVariant[]> {
+  try {
+    const url = `${API_BASE_URL}/variants?productId=${productId}`;
+    console.log('Variants 조회 요청:', url);
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    console.log('Variants 조회 응답 상태:', response.status);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Variants 조회 실패:', errorText);
+      throw new Error(`Variants 조회 실패 (${response.status}): ${errorText}`);
+    }
+    const data = await response.json();
+    console.log('Variants 조회 성공:', data);
+    return data;
+  } catch (error: any) {
+    console.error('Variants 조회 에러:', error);
+    if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+      throw new Error('백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요. (http://localhost:8080)');
     }
     throw error;
   }

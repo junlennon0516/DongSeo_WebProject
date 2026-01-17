@@ -34,7 +34,6 @@ export interface Feature {
 }
 
 export interface Product {
-  image: string;
   category: string;
   title: string;
   description: string;

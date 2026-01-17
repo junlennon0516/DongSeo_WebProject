@@ -1,11 +1,13 @@
 package com.DongSeo.platform.controller;
 
 import com.DongSeo.platform.domain.Category;
+import com.DongSeo.platform.domain.Color;
 import com.DongSeo.platform.domain.Option;
 import com.DongSeo.platform.domain.Product;
 import com.DongSeo.platform.domain.ProductVariant;
 import com.DongSeo.platform.dto.*;
 import com.DongSeo.platform.repository.CategoryRepository;
+import com.DongSeo.platform.repository.ColorRepository;
 import com.DongSeo.platform.repository.OptionRepository;
 import com.DongSeo.platform.repository.ProductRepository;
 import com.DongSeo.platform.repository.ProductVariantRepository;
@@ -28,6 +30,7 @@ public class EstimateController {
     private final ProductRepository productRepository;
     private final OptionRepository optionRepository;
     private final ProductVariantRepository productVariantRepository;
+    private final ColorRepository colorRepository;
 
     // 1. 견적 계산 api
     // 요청: POST http://localhost:8080/api/estimates/calculate
@@ -244,6 +247,34 @@ public class EstimateController {
                 ))
                 .collect(Collectors.toList());
         System.out.println("반환할 variants 응답 개수: " + responses.size());
+        return ResponseEntity.ok(responses);
+    }
+
+    // 7. 회사별 색상 목록 조회
+    // 요청: GET http://localhost:8080/api/colors?companyId=1
+    @GetMapping("/colors")
+    public ResponseEntity<List<ColorResponse>> getColors(@RequestParam Long companyId) {
+        System.out.println("색상 조회 요청 - companyId: " + companyId);
+        List<Color> colors = colorRepository.findByCompanyId(companyId);
+        System.out.println("조회된 색상 개수: " + colors.size());
+        
+        List<ColorResponse> responses = colors.stream()
+                .map(c -> {
+                    ColorResponse.CompanyInfo companyInfo = new ColorResponse.CompanyInfo(
+                            c.getCompany().getId(),
+                            c.getCompany().getName(),
+                            c.getCompany().getCode()
+                    );
+                    return new ColorResponse(
+                            c.getId(),
+                            c.getName(),
+                            c.getColorCode(),
+                            c.getCost(),
+                            companyInfo
+                    );
+                })
+                .collect(Collectors.toList());
+        System.out.println("반환할 색상 응답 개수: " + responses.size());
         return ResponseEntity.ok(responses);
     }
 

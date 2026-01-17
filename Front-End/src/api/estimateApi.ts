@@ -55,6 +55,18 @@ export interface ProductVariant {
   price: number;
 }
 
+export interface Color {
+  id: number;
+  name: string;
+  colorCode: string;
+  cost?: number; // 추가 비용 비율 (예: 0.1 = 10%)
+  company: {
+    id: number;
+    name: string;
+    code: string;
+  };
+}
+
 // 서버 연결 확인
 export async function checkServerConnection(): Promise<boolean> {
   try {
@@ -202,6 +214,35 @@ export async function fetchVariants(productId: number): Promise<ProductVariant[]
     return data;
   } catch (error: any) {
     console.error('Variants 조회 에러:', error);
+    if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+      throw new Error('백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요. (http://localhost:8080)');
+    }
+    throw error;
+  }
+}
+
+// 회사별 색상 목록 조회
+export async function fetchColors(companyId: number = 1): Promise<Color[]> {
+  try {
+    const url = `${API_BASE_URL}/colors?companyId=${companyId}`;
+    console.log('색상 조회 요청:', url);
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    console.log('색상 조회 응답 상태:', response.status);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('색상 조회 실패:', errorText);
+      throw new Error(`색상 조회 실패 (${response.status}): ${errorText}`);
+    }
+    const data = await response.json();
+    console.log('색상 조회 성공:', data);
+    return data;
+  } catch (error: any) {
+    console.error('색상 조회 에러:', error);
     if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
       throw new Error('백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요. (http://localhost:8080)');
     }

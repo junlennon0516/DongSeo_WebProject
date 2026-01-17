@@ -16,9 +16,4 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-  server: {
-    port: 5174,
-    host: '127.0.0.1', // IPv4만 사용하여 권한 문제 해결
-    strictPort: false, // 포트가 사용 중이면 다른 포트 자동 선택
-  },
 })

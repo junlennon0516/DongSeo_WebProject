@@ -1,78 +1,87 @@
 import { Button } from "./ui/button";
 import { ArrowRight, Star } from "lucide-react";
-import { HERO_STATS, HERO_IMAGE_URL } from "../constants";
+import { HERO_STATS } from "../constants";
 import { scrollToSection } from "../utils";
 
 export function Hero() {
   return (
-    <section className="relative min-h-screen flex items-center pt-20">
+    <section className="relative min-h-screen flex items-center pt-20 overflow-hidden">
       <div className="absolute inset-0 z-0">
-        <img
-          src={HERO_IMAGE_URL}
-          alt="Modern interior"
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/40"></div>
+        {/* 그라데이션 배경 */}
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"></div>
+        
+        {/* 패턴 오버레이 */}
+        <div className="absolute inset-0 opacity-30" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23 11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23ffda85' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E")`
+        }}></div>
+        
+        {/* 추가 그라데이션 레이어 */}
+        <div className="absolute inset-0 bg-gradient-to-br from-pastel-600/20 via-transparent to-pastel-700/10"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 via-gray-900/40 to-transparent"></div>
+        
+        {/* 빛나는 효과 */}
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-pastel-600/20 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-pastel-700/20 rounded-full blur-3xl"></div>
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-3xl">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="flex items-center gap-1">
+          <div className="flex items-center gap-3 mb-6 animate-fade-in">
+            <div className="flex items-center gap-1 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
               {Array.from({ length: 5 }, (_, i) => (
                 <Star
                   key={i}
-                  className="w-5 h-5 fill-yellow-400 text-yellow-400"
+                  className="w-4 h-4 fill-pastel-400 text-pastel-400 drop-shadow-lg"
                 />
               ))}
             </div>
-            <span className="text-white/90 text-sm">
+            <span className="text-white/95 text-sm font-medium bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
               30년 경력의 전문가
             </span>
           </div>
 
-          <h1 className="text-white mb-6">
-            <span className="block text-5xl md:text-7xl mb-2">
+          <h1 className="text-white mb-8 leading-tight">
+            <span className="block text-5xl md:text-7xl mb-3 font-extrabold drop-shadow-2xl bg-gradient-to-r from-white via-pastel-100 to-white bg-clip-text text-transparent animate-slide-up">
               품격있는 공간,
             </span>
-            <span className="block text-5xl md:text-7xl">
+            <span className="block text-5xl md:text-7xl font-extrabold drop-shadow-2xl">
               동서가 만듭니다
             </span>
           </h1>
 
-          <p className="text-white/90 text-xl mb-8 max-w-2xl">
+          <p className="text-white/95 text-xl md:text-2xl mb-10 max-w-2xl leading-relaxed font-light">
             창호, 도어, 중문까지 프리미엄 인테리어 솔루션을
             제공합니다.
             <br />
-            정확한 시공과 합리적인 가격으로 고객님의 만족을
+            <span className="text-pastel-300 font-medium">정확한 시공과 합리적인 가격</span>으로 고객님의 만족을
             책임집니다.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-4 mb-16">
             <Button
               size="lg"
               onClick={() => scrollToSection("quote")}
-              className="text-lg px-8 py-6"
+              className="text-lg px-10 py-7 bg-gradient-to-r from-pastel-600 to-pastel-700 hover:from-pastel-700 hover:to-pastel-800 text-white shadow-2xl shadow-pastel-600/40 hover:shadow-2xl hover:shadow-pastel-600/50 transition-all duration-300 hover:scale-105 rounded-2xl font-semibold"
             >
               무료 견적 상담받기
-              <ArrowRight className="ml-2 w-5 h-5" />
+              <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
             <Button
               size="lg"
               variant="outline"
-              className="text-lg px-8 py-6 bg-white hover:bg-gray-100"
+              className="text-lg px-10 py-7 bg-white/10 backdrop-blur-md hover:bg-white/20 text-white border-2 border-white/30 hover:border-white/50 transition-all duration-300 hover:scale-105 rounded-2xl font-semibold"
             >
               시공사례 보기
             </Button>
           </div>
 
-          <div className="grid grid-cols-3 gap-8 mt-12 pt-12 border-t border-white/20">
+          <div className="grid grid-cols-3 gap-8 pt-12 border-t border-white/20 backdrop-blur-sm bg-white/5 rounded-3xl p-8">
             {HERO_STATS.map((stat, index) => (
-              <div key={index}>
-                <div className="text-white text-4xl mb-2">
+              <div key={index} className="text-center group">
+                <div className="text-white text-5xl md:text-6xl mb-3 font-extrabold bg-gradient-to-br from-white to-pastel-200 bg-clip-text text-transparent group-hover:scale-110 transition-transform duration-300">
                   {stat.value}
                 </div>
-                <div className="text-white/80 text-sm">
+                <div className="text-white/90 text-sm md:text-base font-medium">
                   {stat.label}
                 </div>
               </div>

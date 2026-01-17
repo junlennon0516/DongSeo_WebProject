@@ -55,21 +55,18 @@ export const FEATURES: Feature[] = [
 
 export const PRODUCTS: Product[] = [
   {
-    image: 'https://images.unsplash.com/photo-1718066236074-13f8cf7ae93e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBnbGFzcyUyMHdpbmRvd3xlbnwxfHx8fDE3NjY5MjEwMDN8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
     category: '창호',
     title: '프리미엄 시스템 창호',
     description: '최고급 단열 및 방음 성능',
     tags: ['3중 유리', '단열 우수', 'UPVC']
   },
   {
-    image: 'https://images.unsplash.com/photo-1760385737098-0b555a75b2ba?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsdXh1cnklMjBkb29yJTIwZGVzaWdufGVufDF8fHx8MTc2NjkyMTAwM3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
     category: '도어',
     title: '럭셔리 현관문',
     description: '고급스러운 디자인과 보안성',
     tags: ['디지털도어락', '방범 기능', '고급 마감']
   },
   {
-    image: 'https://images.unsplash.com/photo-1731871688430-a3e509d9227e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxpbnRlcmlvciUyMHJlbm92YXRpb258ZW58MXx8fHwxNzY2OTIxMDA0fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
     category: '중문',
     title: '슬라이딩 중문',
     description: '공간 활용도를 높이는 스마트한 선택',
@@ -132,7 +129,6 @@ export const HERO_STATS = [
   { value: '98%', label: '고객 만족도' },
 ] as const;
 
-export const HERO_IMAGE_URL = 'https://images.unsplash.com/photo-1603430416807-87dd6f9538d0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjB3aW5kb3clMjBkb29yJTIwaW50ZXJpb3J8ZW58MXx8fHwxNzY2OTIxMDAzfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral';
 
 
 

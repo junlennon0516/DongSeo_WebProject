@@ -41,8 +41,17 @@ public class EstimationService {
         final String finalParentCode = parentCode;
         PriceCalculator calculator = null;
         
-        // WINDOW 카테고리인 경우 base_price가 있으면 BasicCalculator 우선
-        if (("WINDOW".equals(categoryCode) || "WINDOW".equals(finalParentCode)) 
+        // 간살 목창호는 MatrixCalculator 우선 사용 (제품명에 "간살" 포함)
+        if (("WINDOW".equals(categoryCode) || "WINDOW".equals(finalParentCode))
+            && product.getName() != null && product.getName().contains("간살")) {
+            calculator = calculators.stream()
+                    .filter(c -> c instanceof com.DongSeo.platform.service.calculator.MatrixCalculator)
+                    .findFirst()
+                    .orElse(null);
+        }
+        
+        // WINDOW 카테고리인 경우 base_price가 있으면 BasicCalculator 우선 (간살 목창호가 아닌 경우)
+        if (calculator == null && ("WINDOW".equals(categoryCode) || "WINDOW".equals(finalParentCode)) 
             && product.getBasePrice() != null && product.getBasePrice() > 0) {
             calculator = calculators.stream()
                     .filter(c -> c instanceof com.DongSeo.platform.service.calculator.BasicCalculator)

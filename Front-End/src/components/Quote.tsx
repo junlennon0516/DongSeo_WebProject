@@ -53,8 +53,10 @@ export function Quote() {
     <section id="quote" className="py-20 bg-white">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h2 className="mb-4">무료 견적 문의</h2>
-          <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+          <h2 className="mb-6 text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800 bg-clip-text text-transparent">
+            무료 견적 문의
+          </h2>
+          <p className="text-gray-600 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
             셀프 견적, AI 채팅, 또는 직접 문의 - 원하시는 방법으로 견적을 받아보세요!
           </p>
         </div>

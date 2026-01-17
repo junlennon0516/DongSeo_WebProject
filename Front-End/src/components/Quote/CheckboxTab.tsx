@@ -21,7 +21,7 @@ export function CheckboxTab({ selectedItems, onItemToggle, onSubmit }: CheckboxT
 
   return (
     <div className="grid lg:grid-cols-3 gap-6">
-      <Card className="lg:col-span-2 p-6">
+      <Card className="lg:col-span-2 p-6 bg-pastel-100 border-2 border-pastel-300 shadow-lg shadow-pastel-200/20 rounded-3xl">
         <h3 className="mb-6">시공 항목을 선택하세요</h3>
         
         <div className="space-y-6">
@@ -30,7 +30,7 @@ export function CheckboxTab({ selectedItems, onItemToggle, onSubmit }: CheckboxT
               <h4 className="mb-3 pb-2 border-b">{category}</h4>
               <div className="space-y-3">
                 {QUOTE_ITEMS.filter(item => item.category === category).map(item => (
-                  <div key={item.id} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                  <div key={item.id} className="flex items-start gap-3 p-3 border-2 border-pastel-300 rounded-lg hover:bg-pastel-200 hover:border-pastel-400 transition-colors bg-pastel-100">
                     <Checkbox
                       id={item.id}
                       checked={selectedItems.includes(item.id)}
@@ -40,7 +40,7 @@ export function CheckboxTab({ selectedItems, onItemToggle, onSubmit }: CheckboxT
                     <label htmlFor={item.id} className="flex-1 cursor-pointer">
                       <div className="flex justify-between items-start mb-1">
                         <span className="font-medium">{item.name}</span>
-                        <span className="text-blue-600">{formatCurrency(item.price)}원</span>
+                        <span className="text-pastel-700 font-semibold">{formatCurrency(item.price)}원</span>
                       </div>
                       <p className="text-sm text-gray-600">{item.description}</p>
                     </label>
@@ -53,7 +53,7 @@ export function CheckboxTab({ selectedItems, onItemToggle, onSubmit }: CheckboxT
       </Card>
 
       <div className="space-y-6">
-        <Card className="p-6 sticky top-4">
+        <Card className="p-6 sticky top-4 bg-pastel-100 border-2 border-pastel-300 shadow-lg shadow-pastel-200/20 rounded-3xl">
           <h4 className="mb-4">견적 요약</h4>
           
           {selectedItems.length === 0 ? (
@@ -77,7 +77,7 @@ export function CheckboxTab({ selectedItems, onItemToggle, onSubmit }: CheckboxT
               <div className="border-t pt-4 mb-6">
                 <div className="flex justify-between items-center">
                   <span className="font-semibold">총 금액</span>
-                  <span className="text-2xl text-blue-600">
+                  <span className="text-2xl text-pastel-700">
                     {formatCurrency(calculateTotal())}원
                   </span>
                 </div>
@@ -96,15 +96,15 @@ export function CheckboxTab({ selectedItems, onItemToggle, onSubmit }: CheckboxT
           <h4 className="mb-3">안내사항</h4>
           <ul className="space-y-2 text-sm text-gray-600">
             <li className="flex items-start gap-2">
-              <span className="text-blue-600">•</span>
+              <span className="text-pastel-700">•</span>
               <span>표시된 가격은 기본 시공 기준입니다</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-blue-600">•</span>
+              <span className="text-pastel-700">•</span>
               <span>현장 상황에 따라 변동될 수 있습니다</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-blue-600">•</span>
+              <span className="text-pastel-700">•</span>
               <span>정확한 견적은 현장 방문 후 제공됩니다</span>
             </li>
           </ul>

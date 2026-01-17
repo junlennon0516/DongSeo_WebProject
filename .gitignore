@@ -1,1 +1,12 @@
 Documents/
+
+# NanumGothic 폰트 파일 (용량이 크므로 제외)
+**/NanumGothic*.js
+**/NanumGothic*.ttf
+**/NanumGothic*.otf
+Front-End/public/NanumGothic-normal.js
+Front-End/src/NanumGothic*.js
+
+# SQL 파일 (회사 기밀 데이터)
+**/*.sql
+Back-End/src/main/resources/*.sql

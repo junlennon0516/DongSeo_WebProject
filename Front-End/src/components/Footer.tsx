@@ -1,33 +1,14 @@
 import { Mail, Phone, MapPin } from "lucide-react";
-import { CONTACT_INFO, NAVIGATION_ITEMS } from "../constants";
-import { scrollToSection } from "../utils";
-
-const FOOTER_SERVICES = [
-    { label: '창호 시공', id: 'services' },
-    { label: '도어 시공', id: 'services' },
-    { label: '중문 시공', id: 'services' },
-    { label: '맞춤 제작', id: 'services' },
-] as const;
-
-const FOOTER_COMPANY_LINKS = [
-    { label: '회사소개', id: 'about' },
-    { label: '제품안내', id: 'products' },
-    { label: '견적문의', id: 'quote' },
-] as const;
+import { CONTACT_INFO } from "../constants";
 
 export function Footer() {
-    const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
-        e.preventDefault();
-        scrollToSection(id);
-    };
-
     return (
         <footer className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white relative overflow-hidden">
             <div className="absolute inset-0 opacity-20" style={{
                 backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffda85' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
             }}></div>
-            <div className="container mx-auto px-4 py-16 relative z-10">
-                <div className="grid md:grid-cols-4 gap-12 mb-12">
+            <div className="container mx-auto px-4 py-12 relative z-10">
+                <div className="grid md:grid-cols-2 gap-12 mb-8">
                     <div>
                         <div className="flex items-center gap-3 mb-6">
                             <div className="w-14 h-14 bg-gradient-to-br from-pastel-600 to-pastel-700 rounded-2xl flex items-center justify-center shadow-lg shadow-pastel-600/30">
@@ -44,40 +25,6 @@ export function Footer() {
                             <br />
                             창호·도어 전문 기업
                         </p>
-                    </div>
-
-                    <div>
-                        <h4 className="mb-6 text-lg font-bold text-white">서비스</h4>
-                        <ul className="space-y-3 text-sm">
-                            {FOOTER_SERVICES.map((service, index) => (
-                                <li key={index}>
-                                    <a
-                                        href={`#${service.id}`}
-                                        onClick={(e) => handleLinkClick(e, service.id)}
-                                        className="text-gray-300 hover:text-pastel-400 transition-all duration-300 hover:translate-x-2 inline-block"
-                                    >
-                                        {service.label}
-                                    </a>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-
-                    <div>
-                        <h4 className="mb-6 text-lg font-bold text-white">회사정보</h4>
-                        <ul className="space-y-3 text-sm">
-                            {FOOTER_COMPANY_LINKS.map((link, index) => (
-                                <li key={index}>
-                                    <a
-                                        href={`#${link.id}`}
-                                        onClick={(e) => handleLinkClick(e, link.id)}
-                                        className="text-gray-300 hover:text-pastel-400 transition-all duration-300 hover:translate-x-2 inline-block"
-                                    >
-                                        {link.label}
-                                    </a>
-                                </li>
-                            ))}
-                        </ul>
                     </div>
 
                     <div>
@@ -120,11 +67,6 @@ export function Footer() {
                         <p className="text-sm text-gray-400">
                             © 2025 동서인테리어. All rights reserved.
                         </p>
-                        <div className="flex items-center gap-2 text-gray-500 text-xs">
-                            <span>Made with</span>
-                            <span className="text-pastel-400">❤️</span>
-                            <span>for quality spaces</span>
-                        </div>
                     </div>
                 </div>
             </div>

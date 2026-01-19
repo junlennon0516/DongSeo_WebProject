@@ -9,10 +9,16 @@ import com.DongSeo.platform.repository.ProductRepository;
 import com.DongSeo.platform.service.calculator.PriceCalculator;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+/**
+ * 견적 계산 서비스
+ * 제품, 옵션, 수량 등을 기반으로 견적을 계산합니다.
+ */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class EstimationService {
@@ -21,77 +27,50 @@ public class EstimationService {
     private final OptionRepository optionRepository;
     private final List<PriceCalculator> calculators;
 
+    /**
+     * 견적 계산
+     * 
+     * @param request 견적 요청 정보
+     * @return 계산된 견적 결과
+     * @throws IllegalArgumentException 제품이 존재하지 않거나 계산 로직이 없는 경우
+     */
     @Transactional
     public EstimateResponse calculate(EstimateRequest request) {
+        log.debug("견적 계산 시작: productId={}, quantity={}", request.getProductId(), request.getQuantity());
+        
         // 1. 제품 조회
         Product product = productRepository.findById(request.getProductId())
-                .orElseThrow(() -> new IllegalArgumentException("제품이 존재하지 않습니다."));
+                .orElseThrow(() -> {
+                    log.error("제품을 찾을 수 없음: productId={}", request.getProductId());
+                    return new IllegalArgumentException("제품이 존재하지 않습니다.");
+                });
 
-        // 2. 적절한 계산기 찾기 (Strategy Pattern)
-        // 카테고리 코드 확인 (부모 카테고리도 체크)
+        // 2. 카테고리 코드 확인
         String categoryCode = product.getCategory().getCode();
-        String parentCode = null;
-        if (product.getCategory().getParent() != null) {
-            parentCode = product.getCategory().getParent().getCode();
-        }
-        
-        // 일반 목창호는 base_price가 있으면 BasicCalculator 우선 사용
-        // 간살 목창호는 MatrixCalculator 사용
-        // INTERLOCK 카테고리에서 product_variants가 있으면 VariantCalculator 우선 사용
-        final String finalParentCode = parentCode;
-        PriceCalculator calculator = null;
-        
-        // 간살 목창호는 MatrixCalculator 우선 사용 (제품명에 "간살" 포함)
-        if (("WINDOW".equals(categoryCode) || "WINDOW".equals(finalParentCode))
-            && product.getName() != null && product.getName().contains("간살")) {
-            calculator = calculators.stream()
-                    .filter(c -> c instanceof com.DongSeo.platform.service.calculator.MatrixCalculator)
-                    .findFirst()
-                    .orElse(null);
-        }
-        
-        // WINDOW 카테고리인 경우 base_price가 있으면 BasicCalculator 우선 (간살 목창호가 아닌 경우)
-        if (calculator == null && ("WINDOW".equals(categoryCode) || "WINDOW".equals(finalParentCode)) 
-            && product.getBasePrice() != null && product.getBasePrice() > 0) {
-            calculator = calculators.stream()
-                    .filter(c -> c instanceof com.DongSeo.platform.service.calculator.BasicCalculator)
-                    .findFirst()
-                    .orElse(null);
-        }
-        
-        // INTERLOCK 카테고리에서 product_variants가 있으면 VariantCalculator 우선
-        // (제품명에 "목재 3연동 중문"이 포함된 경우)
-        if (calculator == null && ("INTERLOCK".equals(categoryCode) || "INTERLOCK".equals(finalParentCode))
-            && product.getName() != null && product.getName().contains("목재 3연동 중문")) {
-            calculator = calculators.stream()
-                    .filter(c -> c instanceof com.DongSeo.platform.service.calculator.VariantCalculator)
-                    .findFirst()
-                    .orElse(null);
-        }
-        
-        // 기본적으로 카테고리 코드로 계산기 찾기
-        if (calculator == null) {
-            calculator = calculators.stream()
-                    .filter(c -> c.supports(categoryCode) || (finalParentCode != null && c.supports(finalParentCode)))
-                    .findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException("해당 제품의 계산 로직이 없습니다."));
-        }
+        String parentCode = (product.getCategory().getParent() != null)
+                ? product.getCategory().getParent().getCode()
+                : null;
 
-        // 3. 기본 단가 계산
+        // 3. 적절한 계산기 선택 (우선순위 순서)
+        PriceCalculator calculator = selectCalculator(product, categoryCode, parentCode);
+        
+        log.debug("선택된 계산기: {}, productId={}", calculator.getClass().getSimpleName(), product.getId());
+
+        // 4. 기본 단가 계산
         int basePrice = calculator.calculateBasePrice(product, request);
+        log.debug("기본 단가 계산 완료: basePrice={}, productId={}", basePrice, product.getId());
 
-        // 4. 추가 옵션 금액 합산
-        int optionsTotal = 0;
-        if (request.getOptionIds() != null && !request.getOptionIds().isEmpty()) {
-            List<Option> selectedOptions = optionRepository.findAllById(request.getOptionIds());
-            optionsTotal = selectedOptions.stream().mapToInt(Option::getAddPrice).sum();
-        }
+        // 5. 추가 옵션 금액 합산
+        int optionsTotal = calculateOptionsTotal(request.getOptionIds());
+        log.debug("옵션 금액 계산 완료: optionsTotal={}", optionsTotal);
 
-        // 5. 최종 금액 계산
+        // 6. 최종 금액 계산
         int unitPriceTotal = basePrice + optionsTotal;
         int finalPrice = unitPriceTotal * request.getQuantity();
+        log.info("견적 계산 완료: productId={}, unitPrice={}, optionsTotal={}, quantity={}, totalPrice={}",
+                product.getId(), basePrice, optionsTotal, request.getQuantity(), finalPrice);
 
-        // 6. 응답 생성
+        // 7. 응답 생성
         return EstimateResponse.builder()
                 .productName(product.getName())
                 .unitPrice(basePrice)
@@ -99,6 +78,85 @@ public class EstimationService {
                 .quantity(request.getQuantity())
                 .totalPrice(finalPrice)
                 .build();
+    }
+    
+    /**
+     * 적절한 계산기 선택
+     * 제품의 카테고리와 특성에 따라 적절한 PriceCalculator를 선택합니다.
+     */
+    private PriceCalculator selectCalculator(Product product, String categoryCode, String parentCode) {
+        final String finalParentCode = parentCode;
+        
+        // 간살 목창호는 MatrixCalculator 우선 사용
+        if (isGansalWindow(product, categoryCode, finalParentCode)) {
+            return calculators.stream()
+                    .filter(c -> c instanceof com.DongSeo.platform.service.calculator.MatrixCalculator)
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("간살 목창호 계산기를 찾을 수 없습니다."));
+        }
+        
+        // WINDOW 카테고리인 경우 base_price가 있으면 BasicCalculator 우선
+        if (isWindowWithBasePrice(product, categoryCode, finalParentCode)) {
+            return calculators.stream()
+                    .filter(c -> c instanceof com.DongSeo.platform.service.calculator.BasicCalculator)
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("기본 계산기를 찾을 수 없습니다."));
+        }
+        
+        // INTERLOCK 카테고리에서 목재 3연동 중문인 경우 VariantCalculator 우선
+        if (isWoodInterlock(product, categoryCode, finalParentCode)) {
+            return calculators.stream()
+                    .filter(c -> c instanceof com.DongSeo.platform.service.calculator.VariantCalculator)
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("변형 계산기를 찾을 수 없습니다."));
+        }
+        
+        // 기본적으로 카테고리 코드로 계산기 찾기
+        return calculators.stream()
+                .filter(c -> c.supports(categoryCode) || (finalParentCode != null && c.supports(finalParentCode)))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("해당 제품의 계산 로직이 없습니다."));
+    }
+    
+    /**
+     * 간살 목창호 여부 확인
+     */
+    private boolean isGansalWindow(Product product, String categoryCode, String parentCode) {
+        return ("WINDOW".equals(categoryCode) || "WINDOW".equals(parentCode))
+                && product.getName() != null
+                && product.getName().contains("간살");
+    }
+    
+    /**
+     * base_price가 있는 WINDOW 제품 여부 확인
+     */
+    private boolean isWindowWithBasePrice(Product product, String categoryCode, String parentCode) {
+        return ("WINDOW".equals(categoryCode) || "WINDOW".equals(parentCode))
+                && product.getBasePrice() != null
+                && product.getBasePrice() > 0;
+    }
+    
+    /**
+     * 목재 3연동 중문 여부 확인
+     */
+    private boolean isWoodInterlock(Product product, String categoryCode, String parentCode) {
+        return ("INTERLOCK".equals(categoryCode) || "INTERLOCK".equals(parentCode))
+                && product.getName() != null
+                && product.getName().contains("목재 3연동 중문");
+    }
+    
+    /**
+     * 옵션 금액 합산
+     */
+    private int calculateOptionsTotal(List<Long> optionIds) {
+        if (optionIds == null || optionIds.isEmpty()) {
+            return 0;
+        }
+        
+        List<Option> selectedOptions = optionRepository.findAllById(optionIds);
+        return selectedOptions.stream()
+                .mapToInt(Option::getAddPrice)
+                .sum();
     }
 
 }

@@ -21,7 +21,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { ScrollArea } from "../ui/scroll-area";
 import { Calculator, ShoppingCart, RefreshCw, Loader2, Plus, Trash2, CreditCard, FileDown, Search, X } from "lucide-react";
 import { toast } from "sonner";
-// 한글 폰트는 동적으로 로드 (파일이 너무 커서)
+import { logger } from "../../utils/logger";
+import { COMPANY_ID, DEFAULT_TYPE_NAME, DEFAULT_QUANTITY, DEFAULT_ABS_DOOR_WIDTH, DEFAULT_ABS_DOOR_HEIGHT } from "../../constants/calculator";
+import type { ExtendedEstimateResponse, CartItem } from "../../types/calculator";
 import {
   fetchCategories,
   fetchSubCategories,
@@ -35,10 +37,7 @@ import {
   type Option,
   type ProductVariant,
   type Color,
-  type EstimateResponse,
 } from "../../api/estimateApi";
-
-const COMPANY_ID = 1; // 쉐누
 
 export function CalculatorTab() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -54,45 +53,18 @@ export function CalculatorTab() {
   const [width, setWidth] = useState<string>("");
   const [height, setHeight] = useState<string>("");
   const [specName, setSpecName] = useState<string>("");
-  const [typeName, setTypeName] = useState<string>("일반형 3방");
+  const [typeName, setTypeName] = useState<string>(DEFAULT_TYPE_NAME);
   const [selectedOptions, setSelectedOptions] = useState<number[]>([]);
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [colorSearchQuery, setColorSearchQuery] = useState<string>("");
   const [isColorPopoverOpen, setIsColorPopoverOpen] = useState(false);
-  const [quantity, setQuantity] = useState<number>(1);
+  const [quantity, setQuantity] = useState<number>(DEFAULT_QUANTITY);
   const [margin, setMargin] = useState<string>(""); // 회사 마진 (%)
 
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
   
-  // 확장된 견적 결과 타입
-  interface ExtendedEstimateResponse extends EstimateResponse {
-    categoryName?: string;
-    subCategoryName?: string;
-    selectedOptions?: string[]; // 선택된 옵션 이름들
-    priceIncreaseInfo?: { rate: number; reason: string }; // 사이즈로 인한 가격 인상 정보
-    colorCostInfo?: { colorName: string; costRate: number }; // 색상 추가 비용 정보
-    margin?: string; // 회사 마진 (%)
-    marginAmount?: number; // 마진 금액
-    finalPrice?: number; // 마진 적용 후 최종 가격
-  }
-  
   const [result, setResult] = useState<ExtendedEstimateResponse | null>(null);
-  
-  // 장바구니 상태 (여러 견적 저장)
-  interface CartItem extends ExtendedEstimateResponse {
-    id: string; // 고유 ID
-    width?: string; // 가로폭
-    height?: string; // 세로높이
-    specName?: string; // 규격명
-    typeName?: string; // 타입명
-    selectedColorId?: string; // 선택된 색상 ID
-    selectedColorName?: string; // 선택된 색상 이름
-    selectedColorCode?: string; // 선택된 색상 코드
-    margin?: string; // 회사 마진 (%)
-    marginAmount?: number; // 마진 금액
-    finalPrice?: number; // 마진 적용 후 최종 가격
-  }
   const [cart, setCart] = useState<CartItem[]>([]);
 
   // 초기 데이터 로드
@@ -249,8 +221,8 @@ export function CalculatorTab() {
                        selectedProductObj?.description?.includes("ABS 도어");
       
       if (isABSDoor) {
-        if (!width) setWidth("1000");
-        if (!height) setHeight("2100");
+        if (!width) setWidth(DEFAULT_ABS_DOOR_WIDTH);
+        if (!height) setHeight(DEFAULT_ABS_DOOR_HEIGHT);
       }
 
       if (selectedProductObj?.name?.includes("슬림문틀")) {
@@ -280,17 +252,17 @@ export function CalculatorTab() {
     try {
       setIsLoadingData(true);
       const data = await fetchCategories(COMPANY_ID);
-      console.log("로드된 메인 카테고리 데이터:", data);
-      console.log("메인 카테고리 개수:", data.length);
+      logger.debug("로드된 메인 카테고리 데이터:", data);
+      logger.info("메인 카테고리 개수:", data.length);
       if (data && data.length > 0) {
         setCategories(data);
-        console.log("메인 카테고리 상태 업데이트 완료");
+        logger.debug("메인 카테고리 상태 업데이트 완료");
       } else {
-        console.warn("메인 카테고리 데이터가 비어있습니다.");
+        logger.warn("메인 카테고리 데이터가 비어있습니다.");
         toast.warning("메인 카테고리 데이터가 없습니다.");
       }
     } catch (error: any) {
-      console.error("메인 카테고리 로드 실패:", error);
+      logger.error("메인 카테고리 로드 실패:", error);
       const errorMessage = error.message || "메인 카테고리를 불러오는데 실패했습니다.";
       toast.error(errorMessage);
     } finally {
@@ -301,21 +273,21 @@ export function CalculatorTab() {
   const loadSubCategories = async (parentId: number) => {
     try {
       setIsLoadingData(true);
-      console.log("세부 카테고리 로드 시작 - parentId:", parentId);
+      logger.debug("세부 카테고리 로드 시작 - parentId:", parentId);
       const data = await fetchSubCategories(parentId);
-      console.log("로드된 세부 카테고리 데이터:", data);
-      console.log("세부 카테고리 개수:", data.length);
+      logger.debug("로드된 세부 카테고리 데이터:", data);
+      logger.info("세부 카테고리 개수:", data.length);
       if (data && data.length > 0) {
         setSubCategories(data);
-        console.log("세부 카테고리 상태 업데이트 완료");
+        logger.debug("세부 카테고리 상태 업데이트 완료");
       } else {
-        console.warn("세부 카테고리 데이터가 비어있습니다. 메인 카테고리로 제품 로드 시도");
+        logger.warn("세부 카테고리 데이터가 비어있습니다. 메인 카테고리로 제품 로드 시도");
         setSubCategories([]);
         // 세부 카테고리가 없으면 메인 카테고리로 제품 로드
         loadProducts(parentId);
       }
     } catch (error: any) {
-      console.error("세부 카테고리 로드 실패:", error);
+      logger.error("세부 카테고리 로드 실패:", error);
       // 세부 카테고리가 없을 수도 있으므로 에러는 표시하지 않음
       setSubCategories([]);
       // 세부 카테고리가 없으면 메인 카테고리로 제품 로드 시도
@@ -328,25 +300,25 @@ export function CalculatorTab() {
   const loadProducts = async (categoryId: number) => {
     try {
       setIsLoadingData(true);
-      console.log("제품 로드 시작 - categoryId:", categoryId);
+      logger.debug("제품 로드 시작 - categoryId:", categoryId);
       const data = await fetchProducts(categoryId);
-      console.log("로드된 제품 데이터:", data);
-      console.log("제품 개수:", data.length);
+      logger.debug("로드된 제품 데이터:", data);
+      logger.info("제품 개수:", data.length);
       if (data && data.length > 0) {
         // 중복 제거: id 기준으로 중복 제거
         const uniqueProducts = Array.from(
           new Map(data.map((product) => [product.id, product])).values()
         );
-        console.log("중복 제거 후 제품 개수:", uniqueProducts.length);
+        logger.debug("중복 제거 후 제품 개수:", uniqueProducts.length);
         setProducts(uniqueProducts);
-        console.log("제품 상태 업데이트 완료");
+        logger.debug("제품 상태 업데이트 완료");
       } else {
-        console.warn("제품 데이터가 비어있습니다.");
+        logger.warn("제품 데이터가 비어있습니다.");
         setProducts([]);
         toast.warning("해당 카테고리에 등록된 제품이 없습니다.");
       }
     } catch (error: any) {
-      console.error("제품 로드 실패:", error);
+      logger.error("제품 로드 실패:", error);
       const errorMessage = error.message || "제품을 불러오는데 실패했습니다.";
       toast.error(errorMessage);
       setProducts([]);
@@ -358,20 +330,20 @@ export function CalculatorTab() {
   const loadOptions = async (productId: number) => {
     try {
       setIsLoadingData(true);
-      console.log("옵션 로드 시작 - productId:", productId, "companyId:", COMPANY_ID);
+      logger.debug("옵션 로드 시작 - productId:", productId, "companyId:", COMPANY_ID);
       const data = await fetchOptions(productId, COMPANY_ID);
-      console.log("로드된 옵션 데이터:", data);
-      console.log("옵션 개수:", data.length);
+      logger.debug("로드된 옵션 데이터:", data);
+      logger.info("옵션 개수:", data.length);
       if (data && data.length > 0) {
         setOptions(data);
-        console.log("옵션 상태 업데이트 완료");
+        logger.debug("옵션 상태 업데이트 완료");
       } else {
-        console.warn("옵션 데이터가 비어있습니다.");
+        logger.warn("옵션 데이터가 비어있습니다.");
         setOptions([]);
         // 옵션이 없어도 경고는 표시하지 않음 (옵션이 없는 제품도 있을 수 있음)
       }
     } catch (error: any) {
-      console.error("옵션 로드 실패:", error);
+      logger.error("옵션 로드 실패:", error);
       const errorMessage = error.message || "옵션을 불러오는데 실패했습니다.";
       toast.error(errorMessage);
       setOptions([]);
@@ -383,19 +355,19 @@ export function CalculatorTab() {
   const loadVariants = async (productId: number) => {
     try {
       setIsLoadingData(true);
-      console.log("Variants 로드 시작 - productId:", productId);
+      logger.debug("Variants 로드 시작 - productId:", productId);
       const data = await fetchVariants(productId);
-      console.log("로드된 variants 데이터:", data);
-      console.log("Variants 개수:", data.length);
+      logger.debug("로드된 variants 데이터:", data);
+      logger.info("Variants 개수:", data.length);
       if (data && data.length > 0) {
         setVariants(data);
-        console.log("Variants 상태 업데이트 완료");
+        logger.debug("Variants 상태 업데이트 완료");
       } else {
-        console.warn("Variants 데이터가 비어있습니다.");
+        logger.warn("Variants 데이터가 비어있습니다.");
         setVariants([]);
       }
     } catch (error: any) {
-      console.error("Variants 로드 실패:", error);
+      logger.error("Variants 로드 실패:", error);
       // Variants가 없어도 경고는 표시하지 않음 (variants가 없는 제품도 있을 수 있음)
       setVariants([]);
     } finally {
@@ -406,19 +378,19 @@ export function CalculatorTab() {
   const loadColors = async () => {
     try {
       setIsLoadingData(true);
-      console.log("색상 로드 시작 - companyId:", COMPANY_ID);
+      logger.debug("색상 로드 시작 - companyId:", COMPANY_ID);
       const data = await fetchColors(COMPANY_ID);
-      console.log("로드된 색상 데이터:", data);
-      console.log("색상 개수:", data.length);
+      logger.debug("로드된 색상 데이터:", data);
+      logger.info("색상 개수:", data.length);
       if (data && data.length > 0) {
         setColors(data);
-        console.log("색상 상태 업데이트 완료");
+        logger.debug("색상 상태 업데이트 완료");
       } else {
-        console.warn("색상 데이터가 비어있습니다.");
+        logger.warn("색상 데이터가 비어있습니다.");
         setColors([]);
       }
     } catch (error: any) {
-      console.error("색상 로드 실패:", error);
+      logger.error("색상 로드 실패:", error);
       const errorMessage = error.message || "색상을 불러오는데 실패했습니다.";
       toast.error(errorMessage);
       setColors([]);
@@ -476,7 +448,7 @@ export function CalculatorTab() {
     setWidth("");
     setHeight("");
     setSpecName("");
-    setTypeName("일반형 3방");
+    setTypeName(DEFAULT_TYPE_NAME);
     setSelectedColor("");
     // 마진은 초기화하지 않음 (여러 견적에 동일하게 적용)
   };
@@ -547,13 +519,13 @@ export function CalculatorTab() {
           // 폰트 등록
           doc.addFont("NanumGothic-normal.ttf", "NanumGothic", "normal");
           fontLoaded = true;
-          console.log("한글 폰트 등록 성공");
-        } else {
-          console.error("폰트 base64 문자열을 찾을 수 없습니다. 파일 형식을 확인해주세요.");
-          console.log("파일 시작 부분:", fontText.substring(0, 200));
+            logger.info("한글 폰트 등록 성공");
+          } else {
+            logger.error("폰트 base64 문자열을 찾을 수 없습니다. 파일 형식을 확인해주세요.");
+            logger.debug("파일 시작 부분:", fontText.substring(0, 200));
         }
       } catch (e) {
-        console.error("폰트 등록 실패:", e);
+        logger.error("폰트 등록 실패:", e);
       }
       
       // 폰트 설정 (한글 표시를 위해 필수)
@@ -561,11 +533,11 @@ export function CalculatorTab() {
         try {
           doc.setFont("NanumGothic", "normal");
         } catch (e) {
-          console.warn("NanumGothic 폰트 설정 실패:", e);
+          logger.warn("NanumGothic 폰트 설정 실패:", e);
           fontLoaded = false;
         }
       } else {
-        console.warn("NanumGothic 폰트를 사용할 수 없습니다. 한글이 깨질 수 있습니다.");
+        logger.warn("NanumGothic 폰트를 사용할 수 없습니다. 한글이 깨질 수 있습니다.");
       }
 
       const margin = 20;
@@ -615,7 +587,13 @@ export function CalculatorTab() {
         // 항목 번호 및 제품명
         doc.setFontSize(11);
         doc.setFont("NanumGothic", "normal");
-        const productName = `${index + 1}. ${item.productName}`;
+        // 목재문틀인 경우 제품명을 "목재문틀"로 변경
+        const displayProductName = (item.productName?.includes("목재문틀") || 
+                                   item.productName?.includes("才") ||
+                                   item.productName?.includes("사이")) 
+                                   ? "목재문틀" 
+                                   : item.productName;
+        const productName = `${index + 1}. ${displayProductName}`;
         // 긴 제품명은 여러 줄로 분할
         const splitProductName = doc.splitTextToSize(productName, 170);
         doc.text(splitProductName, margin, yPosition);
@@ -677,7 +655,7 @@ export function CalculatorTab() {
         if (item.priceIncreaseInfo) {
           doc.setFontSize(9);
           doc.setFont("NanumGothic", "normal");
-          const increaseText = `${item.priceIncreaseInfo.reason} (${Math.round(item.priceIncreaseInfo.rate * 100)}% 인상)`;
+          const increaseText = `${item.priceIncreaseInfo.reason}`;
           doc.text(increaseText, margin + 5, yPosition);
           yPosition += 5;
         }
@@ -800,7 +778,7 @@ export function CalculatorTab() {
       doc.save(fileName);
       toast.success("PDF 파일이 다운로드되었습니다.");
     } catch (error) {
-      console.error("PDF 생성 오류:", error);
+      logger.error("PDF 생성 오류:", error);
       toast.error("PDF 생성에 실패했습니다. 다시 시도해주세요.");
     }
   };
@@ -828,6 +806,22 @@ export function CalculatorTab() {
     );
     const categoryCode = selectedCategoryObj?.code;
 
+    // 문틀 카테고리인 경우 가로/세로 입력 체크
+    if (categoryCode === "FRAME" && selectedProduct) {
+      if (!width || !height) {
+        toast.error("가로 폭과 세로 높이를 입력해주세요.");
+        return;
+      }
+    }
+    
+    // 일반 목창호인 경우 가로/세로 입력 체크
+    if (categoryCode === "WINDOW" && !isGansalWindow && selectedProduct) {
+      if (!width || !height) {
+        toast.error("가로 폭과 세로 높이를 입력해주세요.");
+        return;
+      }
+    }
+
     setIsLoading(true);
 
     try {
@@ -835,10 +829,12 @@ export function CalculatorTab() {
         (p) => p.id.toString() === selectedProduct
       );
       const isWoodFrame = selectedProductObj?.name?.includes("목재문틀");
+      const isSlimFrame = selectedProductObj?.name?.includes("슬림문틀");
       const isABSDoor = selectedProductObj?.name?.includes("ABS") || 
                        selectedProductObj?.description?.includes("ABS") ||
                        selectedProductObj?.name?.includes("ABS 도어") ||
                        selectedProductObj?.description?.includes("ABS 도어");
+      const isFrame = categoryCode === "FRAME";
       
       // 간살 목창호인 경우 타입 선택 시 제품이 자동 선택되므로, 제품이 없으면 타입으로 찾기
       let productIdToUse = selectedProduct ? parseInt(selectedProduct) : null;
@@ -856,9 +852,9 @@ export function CalculatorTab() {
         });
         if (matchedProduct) {
           productIdToUse = matchedProduct.id;
-          console.log("간살 목창호 제품 자동 선택:", matchedProduct.name, "ID:", productIdToUse);
+          logger.debug("간살 목창호 제품 자동 선택:", matchedProduct.name, "ID:", productIdToUse);
         } else {
-          console.error("간살 목창호 제품을 찾을 수 없습니다. typeName:", typeName, "products:", products);
+          logger.error("간살 목창호 제품을 찾을 수 없습니다. typeName:", typeName, "products:", products);
         }
       }
       
@@ -871,9 +867,9 @@ export function CalculatorTab() {
         return;
       }
       
-      // 간살 목창호인 경우 width 필수 체크
-      if (isGansalWindow && !width) {
-        toast.error("가로폭을 입력해주세요.");
+      // 간살 목창호인 경우 width와 height 필수 체크
+      if (isGansalWindow && (!width || !height)) {
+        toast.error("가로폭과 세로 높이를 입력해주세요.");
         return;
       }
       
@@ -893,8 +889,8 @@ export function CalculatorTab() {
           ? {
               specName: specName,
               typeName: typeName,
-              // 목재문틀인 경우 가로/세로도 전달
-              ...(isWoodFrame && width && height
+              // 모든 문틀 제품에 가로/세로 전달
+              ...(width && height
                 ? {
                     width: parseInt(width),
                     height: parseInt(height),
@@ -915,11 +911,11 @@ export function CalculatorTab() {
               typeName: typeName,
             }
           : {}),
-        ...(categoryCode === "WINDOW" && (width || isGansalWindow) && typeName
+        ...(categoryCode === "WINDOW" && (width || isGansalWindow || selectedProduct) && (typeName || selectedProduct)
           ? {
               width: width ? parseInt(width) : undefined,
               height: height ? parseInt(height) : undefined,
-              typeName: typeName,
+              typeName: typeName || undefined,
             }
           : {}),
       };
@@ -966,9 +962,170 @@ export function CalculatorTab() {
         }
       }
       
-      // ABS 도어인 경우 가격 인상 규칙 적용
+      // 간살 목창호인 경우 특별 계산 규칙 적용
       let priceIncreaseInfo: { rate: number; reason: string } | null = null;
-      if (isABSDoor && width && height) {
+      if (isGansalWindow && width && height && typeName) {
+        const widthNum = parseInt(width);
+        const heightNum = parseInt(height);
+        let additionalAmount = 0;
+        const reasons: string[] = [];
+        
+        if (heightNum >= 2101 && widthNum > 0) {
+          const isMidari = typeName.includes("미닫이");
+          const isYeodari = typeName.includes("여닫이");
+          
+          if (isMidari) {
+            // 미닫이(80바): 350, 386, 461, 561, 651 → +20,000
+            if ([350, 386, 461, 561, 651].includes(widthNum)) {
+              additionalAmount = 20000;
+              reasons.push(`높이 ${heightNum}mm, 가로폭 ${widthNum}mm (+20,000원)`);
+            }
+            // 미닫이(80바): 751, 851, 951, 1041 → +25,000
+            else if ([751, 851, 951, 1041].includes(widthNum)) {
+              additionalAmount = 25000;
+              reasons.push(`높이 ${heightNum}mm, 가로폭 ${widthNum}mm (+25,000원)`);
+            }
+          } else if (isYeodari) {
+            // 여닫이(120바): 430, 456, 541, 631, 731 → +20,000
+            if ([430, 456, 541, 631, 731].includes(widthNum)) {
+              additionalAmount = 20000;
+              reasons.push(`높이 ${heightNum}mm, 가로폭 ${widthNum}mm (+20,000원)`);
+            }
+            // 여닫이(120바): 831, 931, 1031, 1131 → +25,000
+            else if ([831, 931, 1031, 1131].includes(widthNum)) {
+              additionalAmount = 25000;
+              reasons.push(`높이 ${heightNum}mm, 가로폭 ${widthNum}mm (+25,000원)`);
+            }
+          }
+        }
+        
+        if (additionalAmount > 0) {
+          // unitPrice에 추가 금액 적용
+          const increasedUnitPrice = extendedResponse.unitPrice + additionalAmount;
+          
+          // totalPrice 재계산 (인상된 unitPrice + optionPrice) * quantity
+          const newTotalPrice = (increasedUnitPrice + extendedResponse.optionPrice) * extendedResponse.quantity;
+          
+          priceIncreaseInfo = {
+            rate: 0, // 고정 금액이므로 rate는 사용하지 않음
+            reason: `간살 목창호 추가 비용 (${reasons.join(", ")})`,
+          };
+          
+          extendedResponse = {
+            ...extendedResponse,
+            unitPrice: increasedUnitPrice,
+            totalPrice: newTotalPrice,
+            priceIncreaseInfo: priceIncreaseInfo,
+          };
+        }
+      }
+      
+      // 슬림문틀인 경우 특별 계산 규칙 적용 (간살 목창호가 아닌 경우에만)
+      if (!isGansalWindow && isSlimFrame && width && height && specName) {
+        const widthNum = parseInt(width);
+        const heightNum = parseInt(height);
+        let additionalAmount = 0;
+        const reasons: string[] = [];
+        
+        // 규격 추출 (예: "110바" -> 110)
+        const specNumber = parseInt(specName.replace("바", ""));
+        
+        // 110, 130, 140, 155바
+        if ([110, 130, 140, 155].includes(specNumber)) {
+          if (heightNum >= 2101) {
+            additionalAmount += 3000;
+            reasons.push(`높이 ${heightNum}mm (+3,000원)`);
+          }
+          if (widthNum >= 1201) {
+            additionalAmount += 10000;
+            reasons.push(`가로폭 ${widthNum}mm (+10,000원)`);
+          }
+        }
+        // 175바, 195바
+        else if ([175, 195].includes(specNumber)) {
+          if (heightNum >= 2101) {
+            additionalAmount += 5000;
+            reasons.push(`높이 ${heightNum}mm (+5,000원)`);
+          }
+          if (widthNum >= 1201) {
+            additionalAmount += 13000;
+            reasons.push(`가로폭 ${widthNum}mm (+13,000원)`);
+          }
+        }
+        // 210바, 230바
+        else if ([210, 230].includes(specNumber)) {
+          if (heightNum >= 2101) {
+            additionalAmount += 7000;
+            reasons.push(`높이 ${heightNum}mm (+7,000원)`);
+          }
+          if (widthNum >= 2101) {
+            additionalAmount += 15000;
+            reasons.push(`가로폭 ${widthNum}mm (+15,000원)`);
+          }
+        }
+        
+        if (additionalAmount > 0) {
+          // unitPrice에 추가 금액 적용
+          const increasedUnitPrice = extendedResponse.unitPrice + additionalAmount;
+          
+          // totalPrice 재계산 (인상된 unitPrice + optionPrice) * quantity
+          const newTotalPrice = (increasedUnitPrice + extendedResponse.optionPrice) * extendedResponse.quantity;
+          
+          // 슬림문틀은 고정 금액 추가이므로 rate는 0으로 설정하고 reason에 금액 표시
+          priceIncreaseInfo = {
+            rate: 0, // 고정 금액이므로 rate는 사용하지 않음
+            reason: `슬림문틀 추가 비용 (${reasons.join(", ")})`,
+          };
+          
+          extendedResponse = {
+            ...extendedResponse,
+            unitPrice: increasedUnitPrice,
+            totalPrice: newTotalPrice,
+            priceIncreaseInfo: priceIncreaseInfo,
+          };
+        }
+      }
+      // 일반 목창호인 경우 특별 계산 규칙 적용
+      else if (categoryCode === "WINDOW" && !isGansalWindow && width && height) {
+        const widthNum = parseInt(width);
+        const heightNum = parseInt(height);
+        let additionalAmount = 0;
+        const reasons: string[] = [];
+        
+        // 폭 1051 이상일 때 +5,000원
+        if (widthNum >= 1051) {
+          additionalAmount += 5000;
+          reasons.push(`폭 ${widthNum}mm (+5,000원)`);
+        }
+        
+        // 높이 2101 이상일 때 +10,000원
+        if (heightNum >= 2101) {
+          additionalAmount += 10000;
+          reasons.push(`높이 ${heightNum}mm (+10,000원)`);
+        }
+        
+        if (additionalAmount > 0) {
+          // unitPrice에 추가 금액 적용
+          const increasedUnitPrice = extendedResponse.unitPrice + additionalAmount;
+          
+          // totalPrice 재계산 (인상된 unitPrice + optionPrice) * quantity
+          const newTotalPrice = (increasedUnitPrice + extendedResponse.optionPrice) * extendedResponse.quantity;
+          
+          priceIncreaseInfo = {
+            rate: 0, // 고정 금액이므로 rate는 사용하지 않음
+            reason: `일반 목창호 추가 비용 (${reasons.join(", ")})`,
+          };
+          
+          extendedResponse = {
+            ...extendedResponse,
+            unitPrice: increasedUnitPrice,
+            totalPrice: newTotalPrice,
+            priceIncreaseInfo: priceIncreaseInfo,
+          };
+        }
+      }
+      // ABS 도어 또는 일반 문틀인 경우 가격 인상 규칙 적용 (슬림문틀 제외)
+      else if ((isABSDoor || (isFrame && !isSlimFrame)) && width && height) {
         const widthNum = parseInt(width);
         const heightNum = parseInt(height);
         let priceIncreaseRate = 0;
@@ -1042,7 +1199,7 @@ export function CalculatorTab() {
       setResult(finalResponse);
       toast.success("견적이 계산되었습니다.");
     } catch (error: any) {
-      console.error("견적 계산 오류:", error);
+      logger.error("견적 계산 오류:", error);
       toast.error(error.message || "견적 계산에 실패했습니다. 다시 시도해주세요.");
     } finally {
       setIsLoading(false);
@@ -1056,7 +1213,7 @@ export function CalculatorTab() {
 
   return (
     <div className="grid lg:grid-cols-3 gap-6">
-      <Card className="lg:col-span-2 p-8 rounded-3xl border-2 border-pastel-300 shadow-xl shadow-pastel-200/20 bg-pastel-100">
+      <Card className="lg:col-span-2 p-8 rounded-3xl border-2 border-gray-400 shadow-xl shadow-pastel-200/20 bg-pastel-100">
         <h3 className="mb-8 flex items-center gap-3 text-2xl font-bold">
           <div className="w-12 h-12 bg-gradient-to-br from-pastel-600 to-pastel-700 rounded-xl flex items-center justify-center shadow-lg shadow-pastel-600/30">
             <Calculator className="w-6 h-6 text-white" />
@@ -1074,7 +1231,7 @@ export function CalculatorTab() {
                 value={selectedCategory}
                 disabled={isLoadingData}
               >
-                <SelectTrigger className="bg-white">
+                <SelectTrigger className="bg-white border-2 border-gray-400">
                   <SelectValue placeholder="메인 카테고리 선택" />
                 </SelectTrigger>
                 <SelectContent className="bg-white">
@@ -1084,7 +1241,7 @@ export function CalculatorTab() {
                     </div>
                   ) : (
                     categories.map((category) => {
-                      console.log("카테고리 렌더링:", category);
+                      logger.debug("카테고리 렌더링:", category);
                       return (
                         <SelectItem
                           key={category.id}
@@ -1107,7 +1264,7 @@ export function CalculatorTab() {
                   value={selectedSubCategory}
                   disabled={!selectedCategory || isLoadingData}
                 >
-                  <SelectTrigger className="bg-white">
+                  <SelectTrigger className="bg-white border-2 border-gray-400">
                     <SelectValue placeholder="세부 카테고리 선택" />
                   </SelectTrigger>
                   <SelectContent className="bg-white">
@@ -1144,7 +1301,7 @@ export function CalculatorTab() {
                   value={selectedProduct}
                   disabled={(!selectedCategory && !selectedSubCategory) || isLoadingData}
                 >
-                  <SelectTrigger className="bg-white">
+                  <SelectTrigger className="bg-white border-2 border-gray-400">
                     <SelectValue placeholder="제품 선택" />
                   </SelectTrigger>
                   <SelectContent className="bg-white">
@@ -1157,16 +1314,59 @@ export function CalculatorTab() {
                           : "제품이 없습니다"}
                       </div>
                       ) : (
-                        products.map((product) => (
-                          <SelectItem key={product.id} value={product.id.toString()}>
-                            {product.description || product.name}
-                          </SelectItem>
-                        ))
+                        products.map((product) => {
+                          // 목재문틀인 경우 제품명을 "목재문틀"로 변경
+                          const isWoodFrame = product.name?.includes("목재문틀") || product.description?.includes("목재문틀");
+                          const displayName = isWoodFrame ? "목재문틀" : (product.description || product.name);
+                          
+                          return (
+                            <SelectItem key={product.id} value={product.id.toString()}>
+                              {displayName}
+                            </SelectItem>
+                          );
+                        })
                       )}
                   </SelectContent>
                 </Select>
               </div>
             );
+          })()}
+
+          {/* 일반 목창호: 폭/높이 입력 */}
+          {(() => {
+            const subCategoryObj = subCategories.find(
+              (sc) => sc.id.toString() === selectedSubCategory
+            );
+            const isGansalWindow = subCategoryObj?.name === "간살 목창호";
+            
+            // 일반 목창호인 경우 폭/높이 입력 필드 표시
+            if (categoryCode === "WINDOW" && !isGansalWindow && selectedProduct) {
+              return (
+                <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg border-2 border-gray-300">
+                  <div className="space-y-2">
+                    <Label>가로폭 (mm)</Label>
+                    <Input
+                      type="number"
+                      placeholder="예: 1000"
+                      value={width}
+                      onChange={(e) => setWidth(e.target.value)}
+                      className="border-2 border-gray-400"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>세로 높이 (mm)</Label>
+                    <Input
+                      type="number"
+                      placeholder="예: 2100"
+                      value={height}
+                      onChange={(e) => setHeight(e.target.value)}
+                      className="border-2 border-gray-400"
+                    />
+                  </div>
+                </div>
+              );
+            }
+            return null;
           })()}
 
           {/* ABS 도어: 가로/세로 입력 (제품명 아래) */}
@@ -1181,7 +1381,7 @@ export function CalculatorTab() {
             
             if (isABSDoor) {
               return (
-                <div className="grid grid-cols-2 gap-4 p-4 bg-pastel-100 rounded-lg border-2 border-pastel-300">
+                <div className="grid grid-cols-2 gap-4 p-4 bg-pastel-100 rounded-lg border-2 border-gray-400">
                   <div className="space-y-2">
                     <Label>가로 폭 (mm)</Label>
                     <Input
@@ -1189,7 +1389,7 @@ export function CalculatorTab() {
                       placeholder="1000"
                       value={width || "1000"}
                       onChange={(e) => setWidth(e.target.value)}
-                      className="bg-white"
+                      className="bg-white border-2 border-gray-400"
                     />
                   </div>
                   <div className="space-y-2">
@@ -1199,7 +1399,7 @@ export function CalculatorTab() {
                       placeholder="2100"
                       value={height || "2100"}
                       onChange={(e) => setHeight(e.target.value)}
-                      className="bg-white"
+                      className="bg-white border-2 border-gray-400"
                     />
                   </div>
                 </div>
@@ -1210,15 +1410,16 @@ export function CalculatorTab() {
 
           {/* 3연동 중문: 가로/세로 입력 */}
           {categoryCode === "INTERLOCK" && (
-            <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+            <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg border-2 border-gray-300">
               <div className="space-y-2">
                 <Label>가로 폭 (mm)</Label>
                 <Input
                   type="number"
                   placeholder="예: 1200"
                   value={width}
-                  onChange={(e) => setWidth(e.target.value)}
-                />
+                      onChange={(e) => setWidth(e.target.value)}
+                      className="border-2 border-gray-400"
+                    />
               </div>
               <div className="space-y-2">
                 <Label>세로 높이 (mm)</Label>
@@ -1226,8 +1427,9 @@ export function CalculatorTab() {
                   type="number"
                   placeholder="예: 2100"
                   value={height}
-                  onChange={(e) => setHeight(e.target.value)}
-                />
+                      onChange={(e) => setHeight(e.target.value)}
+                      className="border-2 border-gray-400"
+                    />
               </div>
             </div>
           )}
@@ -1244,7 +1446,7 @@ export function CalculatorTab() {
             // 목재문틀인 경우: 규격 110, 140, 170, 200 + 가로/세로 입력
             if (isWoodFrame) {
               return (
-                <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+                <div className="space-y-4 p-4 bg-gray-50 rounded-lg border-2 border-gray-300">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>가로 폭 (mm)</Label>
@@ -1252,8 +1454,9 @@ export function CalculatorTab() {
                         type="number"
                         placeholder="예: 900"
                         value={width}
-                        onChange={(e) => setWidth(e.target.value)}
-                      />
+                      onChange={(e) => setWidth(e.target.value)}
+                      className="border-2 border-gray-400"
+                    />
                     </div>
                     <div className="space-y-2">
                       <Label>세로 높이 (mm)</Label>
@@ -1261,14 +1464,15 @@ export function CalculatorTab() {
                         type="number"
                         placeholder="예: 2100"
                         value={height}
-                        onChange={(e) => setHeight(e.target.value)}
-                      />
+                      onChange={(e) => setHeight(e.target.value)}
+                      className="border-2 border-gray-400"
+                    />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label>규격</Label>
                     <Select onValueChange={setSpecName} value={specName}>
-                      <SelectTrigger className="bg-white">
+                      <SelectTrigger className="bg-white border-2 border-gray-400">
                         <SelectValue placeholder="규격 선택" />
                       </SelectTrigger>
                       <SelectContent className="bg-white">
@@ -1282,7 +1486,7 @@ export function CalculatorTab() {
                   <div className="space-y-2">
                     <Label>타입</Label>
                     <Select onValueChange={setTypeName} value={typeName}>
-                      <SelectTrigger className="bg-white">
+                      <SelectTrigger className="bg-white border-2 border-gray-400">
                         <SelectValue placeholder="타입 선택" />
                       </SelectTrigger>
                       <SelectContent className="bg-white">
@@ -1297,33 +1501,57 @@ export function CalculatorTab() {
               );
             }
             
-            // PVC 발포문틀, 슬림문틀인 경우: 기존 UI
+            // PVC 발포문틀, 슬림문틀인 경우: 가로/세로 입력 추가
             return (
-              <div className="space-y-2 p-4 bg-gray-50 rounded-lg">
-                <Label>문틀 규격 (바 두께)</Label>
-                <Select onValueChange={setSpecName} value={specName}>
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="규격 선택" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white">
-                    <SelectItem value="110바">110바</SelectItem>
-                    <SelectItem value="130바">130바</SelectItem>
-                    <SelectItem value="140바">140바</SelectItem>
-                    <SelectItem value="155바">155바</SelectItem>
-                    <SelectItem value="175바">175바</SelectItem>
-                    <SelectItem value="195바">195바</SelectItem>
-                    <SelectItem value="210바">210바</SelectItem>
-                    <SelectItem value="230바">230바</SelectItem>
-                    {/* 슬림문틀인 경우 245바 제외 */}
-                    {!isSlimFrame && <SelectItem value="245바">245바</SelectItem>}
-                  </SelectContent>
-                </Select>
+              <div className="space-y-4 p-4 bg-gray-50 rounded-lg border-2 border-gray-300">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>가로 폭 (mm)</Label>
+                    <Input
+                      type="number"
+                      placeholder="예: 900"
+                      value={width}
+                      onChange={(e) => setWidth(e.target.value)}
+                      className="border-2 border-gray-400"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>세로 높이 (mm)</Label>
+                    <Input
+                      type="number"
+                      placeholder="예: 2100"
+                      value={height}
+                      onChange={(e) => setHeight(e.target.value)}
+                      className="border-2 border-gray-400"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>문틀 규격 (바 두께)</Label>
+                  <Select onValueChange={setSpecName} value={specName}>
+                    <SelectTrigger className="bg-white border-2 border-gray-400">
+                      <SelectValue placeholder="규격 선택" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white">
+                      <SelectItem value="110바">110바</SelectItem>
+                      <SelectItem value="130바">130바</SelectItem>
+                      <SelectItem value="140바">140바</SelectItem>
+                      <SelectItem value="155바">155바</SelectItem>
+                      <SelectItem value="175바">175바</SelectItem>
+                      <SelectItem value="195바">195바</SelectItem>
+                      <SelectItem value="210바">210바</SelectItem>
+                      <SelectItem value="230바">230바</SelectItem>
+                      {/* 슬림문틀인 경우 245바 제외 */}
+                      {!isSlimFrame && <SelectItem value="245바">245바</SelectItem>}
+                    </SelectContent>
+                  </Select>
+                </div>
                 {/* 슬림문틀인 경우 타입 선택 UI 숨김 */}
                 {!isSlimFrame && (
-                  <div className="mt-2">
+                  <div className="space-y-2">
                     <Label>타입</Label>
                     <Select onValueChange={setTypeName} value={typeName}>
-                      <SelectTrigger className="bg-white">
+                      <SelectTrigger className="bg-white border-2 border-gray-400">
                         <SelectValue placeholder="타입 선택" />
                       </SelectTrigger>
                       <SelectContent className="bg-white">
@@ -1345,7 +1573,7 @@ export function CalculatorTab() {
 
           {/* 몰딩: 타입 먼저 선택, 그에 따른 규격 출력 */}
           {categoryCode === "MOLDING" && selectedProduct && (
-            <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+            <div className="space-y-4 p-4 bg-gray-50 rounded-lg border-2 border-gray-300">
               <div className="space-y-2">
                 <Label>타입 (type_name)</Label>
                 <Select onValueChange={(value) => {
@@ -1354,7 +1582,7 @@ export function CalculatorTab() {
                   const firstSpec = variants.find(v => v.typeName === value)?.specName;
                   setSpecName(firstSpec || "");
                 }} value={typeName}>
-                  <SelectTrigger className="bg-white">
+                  <SelectTrigger className="bg-white border-2 border-gray-400">
                     <SelectValue placeholder="타입 선택" />
                   </SelectTrigger>
                   <SelectContent className="bg-white">
@@ -1378,7 +1606,7 @@ export function CalculatorTab() {
                 <div className="space-y-2">
                   <Label>규격 (spec_name)</Label>
                   <Select onValueChange={setSpecName} value={specName}>
-                    <SelectTrigger className="bg-white">
+                    <SelectTrigger className="bg-white border-2 border-gray-400">
                       <SelectValue placeholder="규격 선택" />
                     </SelectTrigger>
                     <SelectContent className="bg-white">
@@ -1396,7 +1624,7 @@ export function CalculatorTab() {
               )}
               {/* 선택된 타입과 규격 정보 표시 */}
               {typeName && specName && (
-                <div className="p-3 bg-blue-50 rounded-md border border-blue-200">
+                <div className="p-3 bg-blue-50 rounded-md border-2 border-blue-400">
                   <div className="text-sm text-gray-700">
                     <div className="font-medium mb-1">선택된 정보:</div>
                     <div>타입: <span className="font-semibold">{typeName}</span></div>
@@ -1442,15 +1670,15 @@ export function CalculatorTab() {
                           });
                           if (matchedProduct) {
                             setSelectedProduct(matchedProduct.id.toString());
-                            console.log("간살 목창호 제품 자동 선택:", matchedProduct.name, "ID:", matchedProduct.id);
+                            logger.debug("간살 목창호 제품 자동 선택:", matchedProduct.name, "ID:", matchedProduct.id);
                           } else {
-                            console.error("간살 목창호 제품을 찾을 수 없습니다. typeName:", value, "products:", products);
+                            logger.error("간살 목창호 제품을 찾을 수 없습니다. typeName:", value, "products:", products);
                           }
                         }
                       }} 
                       value={typeName}
                     >
-                      <SelectTrigger className="bg-white">
+                      <SelectTrigger className="bg-white border-2 border-gray-400">
                         <SelectValue placeholder="타입 선택" />
                       </SelectTrigger>
                       <SelectContent className="bg-white">
@@ -1467,6 +1695,7 @@ export function CalculatorTab() {
                         placeholder="예: 350"
                         value={width}
                         onChange={(e) => setWidth(e.target.value)}
+                        className="border-2 border-gray-400"
                       />
                     </div>
                     <div className="space-y-2">
@@ -1476,6 +1705,7 @@ export function CalculatorTab() {
                         placeholder="예: 2100"
                         value={height}
                         onChange={(e) => setHeight(e.target.value)}
+                        className="border-2 border-gray-400"
                       />
                     </div>
                   </div>
@@ -1487,7 +1717,7 @@ export function CalculatorTab() {
 
           {/* 필름: 규격 선택 시 타입 자동 결정 */}
           {categoryCode === "FILM" && selectedProduct && (
-            <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+            <div className="space-y-4 p-4 bg-gray-50 rounded-lg border-2 border-gray-300">
               <div className="space-y-2">
                 <Label>규격 (spec_name)</Label>
                 <Select onValueChange={(value) => {
@@ -1498,7 +1728,7 @@ export function CalculatorTab() {
                     setTypeName(matchedVariant.typeName);
                   }
                 }} value={specName}>
-                  <SelectTrigger className="bg-white">
+                  <SelectTrigger className="bg-white border-2 border-gray-400">
                     <SelectValue placeholder="규격 선택" />
                   </SelectTrigger>
                   <SelectContent className="bg-white">
@@ -1520,7 +1750,7 @@ export function CalculatorTab() {
               </div>
               {/* 선택된 규격과 타입 정보 표시 (타입은 자동 결정) */}
               {specName && typeName && (
-                <div className="p-4 bg-gradient-to-br from-pastel-200 to-pastel-300 rounded-2xl border-2 border-pastel-400 shadow-lg shadow-pastel-200/30">
+                <div className="p-4 bg-gradient-to-br from-pastel-200 to-pastel-300 rounded-2xl border-2 border-gray-500 shadow-lg shadow-pastel-200/30">
                   <div className="text-sm text-gray-700">
                     <div className="font-medium mb-1">선택된 정보:</div>
                     <div>규격: <span className="font-semibold">{specName}</span></div>
@@ -1545,12 +1775,49 @@ export function CalculatorTab() {
             
             if (!selectedProduct) return false;
             
-            // 간살 목창호는 높이 2101 이상 옵션만 필터링하여 표시
+            const selectedProductObj = products.find(
+              (p) => p.id.toString() === selectedProduct
+            );
+            const isSlimFrame = selectedProductObj?.name?.includes("슬림문틀");
+            
+            const selectedCategoryObj = categories.find(
+              (c) => c.id.toString() === selectedCategory
+            );
+            const categoryCode = selectedCategoryObj?.code;
+            const isNormalWindow = categoryCode === "WINDOW" && !isGansalWindow;
+            
+            // 간살 목창호 또는 일반 목창호는 특정 옵션 제외
             let optionsToShow = options;
-            if (isGansalWindow) {
-              optionsToShow = options.filter(opt => 
-                opt.name?.includes("높이 2101") || opt.name?.includes("2101")
-              );
+            if (isGansalWindow || isNormalWindow) {
+              // 간살 목창호에서 제외할 옵션들
+              optionsToShow = options.filter(opt => {
+                const optName = (opt.name || "").trim().toLowerCase();
+                // 제외할 옵션들 - 키워드 기반 필터링 (대소문자 무시)
+                // 높이 2101 이상 (+20,000원) 제외
+                if (optName.includes("높이 2101 이상") && (opt.addPrice === 20000 || optName.includes("20000") || optName.includes("20,000"))) {
+                  return false;
+                }
+                // 높이 2101 이상 (일부 구간) (+25,000원) 제외
+                if (optName.includes("높이 2101 이상") && (optName.includes("일부 구간") || optName.includes("일부구간"))) {
+                  return false;
+                }
+                // 폭 1051 이상 (+5,000원) 제외
+                if (optName.includes("폭 1051 이상") || optName.includes("폭1051")) {
+                  return false;
+                }
+                // 높이 2101 이상 (일반) (+10,000원) 제외
+                if (optName.includes("높이 2101 이상") && optName.includes("일반")) {
+                  return false;
+                }
+                return true;
+              });
+            }
+            // 슬림문틀은 특정 옵션 두 개 제외 (첫 번째와 두 번째 옵션 제외)
+            else if (isSlimFrame && options.length > 0) {
+              // 옵션을 id 순서로 정렬 후 첫 두 개 제외
+              const sortedOptions = [...options].sort((a, b) => a.id - b.id);
+              const excludedIds = sortedOptions.slice(0, 2).map(opt => opt.id);
+              optionsToShow = options.filter(opt => !excludedIds.includes(opt.id));
             }
             
             return optionsToShow.length > 0;
@@ -1564,12 +1831,49 @@ export function CalculatorTab() {
                   );
                   const isGansalWindow = subCategoryObj?.name === "간살 목창호";
                   
-                  // 간살 목창호는 높이 2101 이상 옵션만 필터링
+                  const selectedProductObj = products.find(
+                    (p) => p.id.toString() === selectedProduct
+                  );
+                  const isSlimFrame = selectedProductObj?.name?.includes("슬림문틀");
+                  
+                  const selectedCategoryObj = categories.find(
+                    (c) => c.id.toString() === selectedCategory
+                  );
+                  const categoryCode = selectedCategoryObj?.code;
+                  const isNormalWindow = categoryCode === "WINDOW" && !isGansalWindow;
+                  
+                  // 간살 목창호 또는 일반 목창호는 특정 옵션 제외
                   let optionsToShow = options;
-                  if (isGansalWindow) {
-                    optionsToShow = options.filter(opt => 
-                      opt.name?.includes("높이 2101") || opt.name?.includes("2101")
-                    );
+                  if (isGansalWindow || isNormalWindow) {
+                    // 간살 목창호에서 제외할 옵션들
+                    optionsToShow = options.filter(opt => {
+                      const optName = (opt.name || "").trim().toLowerCase();
+                      // 제외할 옵션들 - 키워드 기반 필터링 (대소문자 무시)
+                      // 높이 2101 이상 (+20,000원) 제외
+                      if (optName.includes("높이 2101 이상") && (opt.addPrice === 20000 || optName.includes("20000") || optName.includes("20,000"))) {
+                        return false;
+                      }
+                      // 높이 2101 이상 (일부 구간) (+25,000원) 제외
+                      if (optName.includes("높이 2101 이상") && (optName.includes("일부 구간") || optName.includes("일부구간"))) {
+                        return false;
+                      }
+                      // 폭 1051 이상 (+5,000원) 제외
+                      if (optName.includes("폭 1051 이상") || optName.includes("폭1051")) {
+                        return false;
+                      }
+                      // 높이 2101 이상 (일반) (+10,000원) 제외
+                      if (optName.includes("높이 2101 이상") && optName.includes("일반")) {
+                        return false;
+                      }
+                      return true;
+                    });
+                  }
+                  // 슬림문틀은 특정 옵션 두 개 제외 (첫 번째와 두 번째 옵션 제외)
+                  else if (isSlimFrame && options.length > 0) {
+                    // 옵션을 id 순서로 정렬 후 첫 두 개 제외
+                    const sortedOptions = [...options].sort((a, b) => a.id - b.id);
+                    const excludedIds = sortedOptions.slice(0, 2).map(opt => opt.id);
+                    optionsToShow = options.filter(opt => !excludedIds.includes(opt.id));
                   }
                   
                   return optionsToShow;
@@ -1578,7 +1882,7 @@ export function CalculatorTab() {
                   .map((opt) => (
                   <div
                     key={opt.id}
-                    className="flex items-center space-x-2 border p-3 rounded-md hover:bg-gray-50"
+                    className="flex items-center space-x-2 border-2 border-gray-300 p-3 rounded-md hover:bg-gray-50"
                   >
                     <Checkbox
                       id={`opt-${opt.id}`}
@@ -1609,7 +1913,7 @@ export function CalculatorTab() {
                 <PopoverTrigger asChild>
                   <button
                     type="button"
-                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] border bg-background text-foreground hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-9 px-4 py-2 w-full justify-between bg-white hover:bg-gray-50"
+                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] border-2 border-gray-400 bg-background text-foreground hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-9 px-4 py-2 w-full justify-between bg-white hover:bg-gray-50"
                   >
                     <span className="flex items-center gap-2">
                       {selectedColor ? (
@@ -1620,7 +1924,7 @@ export function CalculatorTab() {
                               <>
                                 {color.colorCode && (
                                   <div
-                                    className="w-4 h-4 rounded border border-gray-300"
+                                    className="w-4 h-4 rounded border-2 border-gray-400"
                                     style={{ backgroundColor: color.colorCode }}
                                   />
                                 )}
@@ -1643,7 +1947,7 @@ export function CalculatorTab() {
                     <Search className="h-4 w-4 opacity-50" />
                   </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[400px] p-0" align="start">
+                <PopoverContent className="w-[400px] p-0 bg-white border-2 border-gray-400" align="start">
                   <div className="p-3 border-b">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -1666,7 +1970,35 @@ export function CalculatorTab() {
                   <ScrollArea className="h-[300px]">
                     <div className="p-2">
                       {(() => {
-                        const filteredColors = colors.filter((color) => {
+                        // 간살 목창호인지 확인
+                        const subCategoryObj = subCategories.find(
+                          (sc) => sc.id.toString() === selectedSubCategory
+                        );
+                        const isGansalWindow = subCategoryObj?.name === "간살 목창호";
+                        
+                        // 간살 목창호인 경우 마일드오크, 딥오크만 필터링
+                        let availableColors = colors;
+                        if (isGansalWindow) {
+                          // 간살 목창호는 마일드오크, 딥오크만 선택 가능
+                          const filtered = colors.filter(color => {
+                            const colorName = (color.name || "").toLowerCase();
+                            // 이름으로 필터링 (ID는 순서에 따라 달라질 수 있음)
+                            return colorName.includes("마일드오크") || colorName.includes("딥오크");
+                          });
+                          
+                          // 중복 제거: 같은 이름의 색상이 여러 개 있으면 첫 번째 것만 사용
+                          const seenNames = new Set<string>();
+                          availableColors = filtered.filter(color => {
+                            const colorName = (color.name || "").trim().toLowerCase();
+                            if (seenNames.has(colorName)) {
+                              return false;
+                            }
+                            seenNames.add(colorName);
+                            return true;
+                          });
+                        }
+                        
+                        const filteredColors = availableColors.filter((color) => {
                           if (!colorSearchQuery) return true;
                           const query = colorSearchQuery.toLowerCase();
                           return (
@@ -1676,6 +2008,15 @@ export function CalculatorTab() {
                         });
 
                         if (filteredColors.length === 0) {
+                          if (isGansalWindow) {
+                            return (
+                              <div className="text-center py-8 text-gray-400">
+                                간살 목창호는 마일드오크, 딥오크만 선택 가능합니다.
+                                <br />
+                                (현재 사용 가능한 색상이 없습니다.)
+                              </div>
+                            );
+                          }
                           return (
                             <div className="text-center py-8 text-gray-400">
                               검색 결과가 없습니다.
@@ -1693,14 +2034,14 @@ export function CalculatorTab() {
                             }}
                             className={`w-full text-left p-3 rounded-md hover:bg-pastel-100 transition-colors ${
                               selectedColor === color.id.toString()
-                                ? "bg-pastel-200 border-2 border-pastel-400"
-                                : "border border-transparent"
+                                ? "bg-pastel-200 border-2 border-gray-600"
+                                : "border-2 border-gray-300"
                             }`}
                           >
                             <div className="flex items-center gap-3">
                               {color.colorCode && (
                                 <div
-                                  className="w-8 h-8 rounded border-2 border-gray-300 flex-shrink-0"
+                                  className="w-8 h-8 rounded border-2 border-gray-400 flex-shrink-0"
                                   style={{ backgroundColor: color.colorCode }}
                                 />
                               )}
@@ -1739,7 +2080,7 @@ export function CalculatorTab() {
           )}
 
           {/* 회사 마진 입력 */}
-          <div className="space-y-2 p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
+          <div className="space-y-2 p-4 bg-blue-50 rounded-lg border-2 border-blue-400">
             <Label className="text-base font-semibold text-blue-900">회사 마진 설정</Label>
             <div className="flex items-center gap-2">
               <Input
@@ -1777,7 +2118,8 @@ export function CalculatorTab() {
                 type="number"
                 min={1}
                 value={quantity}
-                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                      onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                      className="border-2 border-gray-400"
               />
             </div>
             <Button
@@ -1789,10 +2131,19 @@ export function CalculatorTab() {
                 );
                 const isGansalWindow = subCategoryObj?.name === "간살 목창호";
                 
+                const selectedCategoryObj = categories.find(
+                  (c) => c.id.toString() === selectedCategory
+                );
+                const categoryCode = selectedCategoryObj?.code;
+                
                 if (isLoading || isLoadingData) return true;
                 if (isGansalWindow) {
                   // 간살 목창호는 타입과 가로폭이 필수
                   return !typeName || !width;
+                }
+                // 문틀 카테고리인 경우 가로/세로 입력 필수
+                if (categoryCode === "FRAME" && selectedProduct) {
+                  return !width || !height;
                 }
                 // 일반 목창호는 제품 선택 필수
                 return !selectedProduct;
@@ -1812,8 +2163,8 @@ export function CalculatorTab() {
       {/* 결과 표시 영역 */}
       <div className="space-y-6">
         {/* 현재 계산된 견적 */}
-        <Card className="p-6 border-pastel-300 bg-pastel-100 sticky top-4 rounded-3xl shadow-xl shadow-pastel-200/20 border-2">
-          <CardHeader className="pb-4 border-b border-pastel-300">
+        <Card className="p-6 border-gray-400 bg-pastel-100 sticky top-4 rounded-3xl shadow-xl shadow-pastel-200/20 border-2">
+          <CardHeader className="pb-4 border-b-2 border-gray-400">
             <CardTitle className="text-lg flex items-center justify-between">
               <span>예상 견적서</span>
               <span className="text-sm font-normal text-gray-500">
@@ -1835,7 +2186,15 @@ export function CalculatorTab() {
               <>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between font-medium text-lg">
-                    <span>{result.productName}</span>
+                    <span>
+                      {(() => {
+                        // 목재문틀인 경우 제품명을 "목재문틀"로 변경
+                        const isWoodFrame = result.productName?.includes("목재문틀") || 
+                                          result.productName?.includes("才") ||
+                                          result.productName?.includes("사이");
+                        return isWoodFrame ? "목재문틀" : result.productName;
+                      })()}
+                    </span>
                   </div>
                   {result.categoryName && (
                     <div className="text-xs text-gray-500">
@@ -1843,22 +2202,58 @@ export function CalculatorTab() {
                       {result.subCategoryName && ` > ${result.subCategoryName}`}
                     </div>
                   )}
+                  {/* 규격 및 타입 정보 */}
+                  {(specName || typeName) && (
+                    <div className="text-xs text-gray-500">
+                      {specName && `규격: ${specName}`}
+                      {specName && typeName && " / "}
+                      {typeName && `타입: ${typeName}`}
+                    </div>
+                  )}
+                  {/* 사이즈 정보 */}
+                  {(width || height) && (
+                    <div className="text-xs text-gray-500">
+                      {width && `가로: ${width}mm`}
+                      {width && height && " / "}
+                      {height && `세로: ${height}mm`}
+                    </div>
+                  )}
+                  {/* 색상 정보 */}
+                  {selectedColor && (() => {
+                    const selectedColorObj = colors.find((c) => c.id.toString() === selectedColor);
+                    return selectedColorObj ? (
+                      <div className="text-xs text-gray-500 flex items-center gap-2">
+                        색상: {selectedColorObj.name}
+                        {selectedColorObj.colorCode && (
+                          <>
+                            <div
+                              className="w-4 h-4 rounded border-2 border-gray-400"
+                              style={{ backgroundColor: selectedColorObj.colorCode }}
+                            />
+                            <span>({selectedColorObj.colorCode})</span>
+                          </>
+                        )}
+                      </div>
+                    ) : null;
+                  })()}
                   <div className="flex justify-between text-gray-600">
                     <span>기본 단가</span>
                     <span>{result.unitPrice.toLocaleString()}원</span>
                   </div>
                   {/* @ts-ignore - 가격 인상 정보 표시 */}
                   {result.priceIncreaseInfo && (
-                    <div className="flex justify-between items-center bg-pastel-200/50 p-2 rounded-md border border-pastel-400">
+                    <div className="flex justify-between items-center bg-pastel-200/50 p-2 rounded-md border-2 border-gray-500">
                       <span className="text-sm text-pastel-800 font-medium">
                         {/* @ts-ignore */}
-                        {result.priceIncreaseInfo.reason} ({Math.round(result.priceIncreaseInfo.rate * 100)}% 인상)
+                        {result.priceIncreaseInfo.reason}
+                        {/* @ts-ignore */}
+                        {result.priceIncreaseInfo.rate > 0 && ` (${Math.round(result.priceIncreaseInfo.rate * 100)}% 인상)`}
                       </span>
                     </div>
                   )}
                   {/* @ts-ignore - 색상 cost 정보 표시 */}
                   {result.colorCostInfo && (
-                    <div className="flex justify-between items-center bg-pastel-200/50 p-2 rounded-md border border-pastel-400">
+                    <div className="flex justify-between items-center bg-pastel-200/50 p-2 rounded-md border-2 border-gray-500">
                       <span className="text-sm text-pastel-800 font-medium">
                         {/* @ts-ignore */}
                         색상 추가 비용 ({result.colorCostInfo.colorName}) ({Math.round(result.colorCostInfo.costRate * 100)}% 인상)
@@ -1884,7 +2279,7 @@ export function CalculatorTab() {
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-pastel-400 mt-4 space-y-2">
+                <div className="pt-4 border-t-2 border-gray-400 mt-4 space-y-2">
                   {/* 마진 적용 전 금액 */}
                   {result.finalPrice ? (
                     <>
@@ -1901,11 +2296,11 @@ export function CalculatorTab() {
                     </>
                   ) : null}
                   
-                  <div className="flex justify-between items-center pt-2 border-t border-pastel-300">
+                  <div className="flex justify-between items-center pt-2 border-t-2 border-gray-400">
                     <span className="font-semibold text-gray-700">
                       총 예상 금액
                     </span>
-                    <span className="text-3xl font-extrabold bg-gradient-to-r from-pastel-700 to-pastel-800 bg-clip-text text-transparent">
+                    <span className="text-3xl font-extrabold bg-gradient-to-r from-pastel-700 to-pastel-800 bg-clip-text text-gray-700">
                       {(result.finalPrice || result.totalPrice).toLocaleString()}원
                     </span>
                   </div>
@@ -1935,8 +2330,8 @@ export function CalculatorTab() {
         </Card>
 
         {/* 장바구니 */}
-        <Card className="p-6 border-pastel-400 bg-pastel-200/50">
-          <CardHeader className="pb-4 border-b border-pastel-300">
+        <Card className="p-6 border-gray-500 bg-pastel-200/50 border-2">
+          <CardHeader className="pb-4 border-b-2 border-gray-400">
             <CardTitle className="text-lg flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <ShoppingCart className="w-5 h-5" />
@@ -1960,12 +2355,18 @@ export function CalculatorTab() {
                   {cart.map((item) => (
                     <div
                       key={item.id}
-                      className="p-5 bg-pastel-50 rounded-2xl border-2 border-pastel-300 hover:border-pastel-400 hover:shadow-lg transition-all duration-300"
+                      className="p-5 bg-pastel-50 rounded-2xl border-2 border-gray-400 hover:border-gray-600 hover:shadow-lg transition-all duration-300"
                     >
                       <div className="flex justify-between items-start mb-2">
                         <div className="flex-1">
                           <div className="font-medium text-base">
-                            {item.productName}
+                            {(() => {
+                              // 목재문틀인 경우 제품명을 "목재문틀"로 변경
+                              const isWoodFrame = item.productName?.includes("목재문틀") || 
+                                                item.productName?.includes("才") ||
+                                                item.productName?.includes("사이");
+                              return isWoodFrame ? "목재문틀" : item.productName;
+                            })()}
                           </div>
                           {item.categoryName && (
                             <div className="text-xs text-gray-500 mt-1">
@@ -2005,7 +2406,7 @@ export function CalculatorTab() {
                           <span>수량</span>
                           <span>{item.quantity}개</span>
                         </div>
-                        <div className="flex justify-between font-semibold text-gray-800 pt-2 border-t border-gray-200 mt-2">
+                        <div className="flex justify-between font-semibold text-gray-800 pt-2 border-t-2 border-gray-300 mt-2">
                           <span>소계</span>
                           <span>{item.totalPrice.toLocaleString()}원</span>
                         </div>
@@ -2014,7 +2415,7 @@ export function CalculatorTab() {
                   ))}
                 </div>
 
-                <div className="pt-4 border-t border-green-200 mt-4">
+                <div className="pt-4 border-t-2 border-gray-400 mt-4">
                   <div className="flex justify-between items-center">
                     <span className="font-semibold text-lg text-gray-700">
                       총 예상 금액

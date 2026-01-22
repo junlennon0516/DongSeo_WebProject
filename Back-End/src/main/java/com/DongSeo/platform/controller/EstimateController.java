@@ -15,6 +15,7 @@ import com.DongSeo.platform.service.EstimationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -76,6 +77,7 @@ public class EstimateController {
      * @return 메인 카테고리 목록
      */
     @GetMapping("/categories")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<CategoryResponse>> getCategories(@RequestParam(required = false) Long companyId) {
         log.debug("메인 카테고리 조회 요청: companyId={}", companyId);
         try {
@@ -105,6 +107,7 @@ public class EstimateController {
      * @return 세부 카테고리 목록
      */
     @GetMapping("/subcategories")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<CategoryResponse>> getSubCategories(@RequestParam Long parentId) {
         log.debug("세부 카테고리 조회 요청: parentId={}", parentId);
         try {
@@ -129,6 +132,7 @@ public class EstimateController {
      * @return 제품 목록
      */
     @GetMapping("/products")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<ProductResponse>> getProducts(@RequestParam Long categoryId) {
         log.debug("제품 조회 요청: categoryId={}", categoryId);
         try {
@@ -168,6 +172,7 @@ public class EstimateController {
      * @return 옵션 목록
      */
     @GetMapping("/options")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<OptionResponse>> getOptions(
             @RequestParam(required = false) Long productId,
             @RequestParam Long companyId) {
@@ -248,6 +253,7 @@ public class EstimateController {
     
     /**
      * 카테고리 계층 구조에서 모든 카테고리 ID 수집
+     * Category의 parent가 Lazy Loading이므로 세션이 유지되어야 합니다.
      */
     private List<Long> collectCategoryIds(Category category) {
         List<Long> categoryIds = new java.util.ArrayList<>();
@@ -255,7 +261,13 @@ public class EstimateController {
         
         while (current != null) {
             categoryIds.add(current.getId());
-            current = current.getParent();
+            // parent가 프록시인 경우 초기화를 위해 getId()를 먼저 호출
+            Category parent = current.getParent();
+            if (parent != null) {
+                // 프록시 초기화를 위해 getId() 호출
+                parent.getId();
+            }
+            current = parent;
         }
         
         return categoryIds;
@@ -263,15 +275,20 @@ public class EstimateController {
     
     /**
      * Option 엔티티를 OptionResponse DTO로 변환
+     * Category가 Lazy Loading이므로 세션이 유지되어야 합니다.
      */
     private OptionResponse mapToOptionResponse(Option opt) {
-        OptionResponse.CategoryInfo categoryInfo = (opt.getCategory() != null)
-                ? new OptionResponse.CategoryInfo(
-                        opt.getCategory().getId(),
-                        opt.getCategory().getName(),
-                        opt.getCategory().getCode()
-                )
-                : null;
+        OptionResponse.CategoryInfo categoryInfo = null;
+        Category category = opt.getCategory();
+        if (category != null) {
+            // 프록시 초기화를 위해 getId() 먼저 호출
+            category.getId();
+            categoryInfo = new OptionResponse.CategoryInfo(
+                    category.getId(),
+                    category.getName(),
+                    category.getCode()
+            );
+        }
         return new OptionResponse(
                 opt.getId(),
                 opt.getName(),
@@ -288,6 +305,7 @@ public class EstimateController {
      * @return 제품 variants 목록
      */
     @GetMapping("/variants")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<ProductVariantResponse>> getVariants(@RequestParam Long productId) {
         log.debug("Variants 조회 요청: productId={}", productId);
         try {
@@ -317,6 +335,7 @@ public class EstimateController {
      * @return 색상 목록
      */
     @GetMapping("/colors")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<ColorResponse>> getColors(@RequestParam Long companyId) {
         log.debug("색상 조회 요청: companyId={}", companyId);
         try {

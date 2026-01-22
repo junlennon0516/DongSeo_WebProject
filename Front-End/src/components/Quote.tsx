@@ -1,4 +1,7 @@
 import { CalculatorTab } from './Quote/CalculatorTab';
+import { WoodTab } from './Quote/WoodTab';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
+import { Calculator, Package } from 'lucide-react';
 
 export function Quote() {
   return (
@@ -14,7 +17,24 @@ export function Quote() {
         </div>
 
         <div className="max-w-6xl mx-auto">
-          <CalculatorTab />
+          <Tabs defaultValue="calculator" className="w-full">
+            <TabsList className="mb-6 bg-pastel-100 border-2 border-gray-400 p-1">
+              <TabsTrigger value="calculator" className="flex items-center gap-2">
+                <Calculator className="w-4 h-4" />
+                도어/문틀 견적
+              </TabsTrigger>
+              <TabsTrigger value="wood" className="flex items-center gap-2">
+                <Package className="w-4 h-4" />
+                목재 자재
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="calculator">
+              <CalculatorTab />
+            </TabsContent>
+            <TabsContent value="wood">
+              <WoodTab />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </section>

@@ -1124,8 +1124,68 @@ export function CalculatorTab() {
           };
         }
       }
-      // ABS 도어 또는 일반 문틀인 경우 가격 인상 규칙 적용 (슬림문틀 제외)
-      else if ((isABSDoor || (isFrame && !isSlimFrame)) && width && height) {
+      // ABS 도어인 경우 가격 인상 규칙 적용
+      else if (isABSDoor && width && height) {
+        const widthNum = parseInt(width);
+        const heightNum = parseInt(height);
+        let additionalAmount = 0;
+        const reasons: string[] = [];
+        
+        // 제품명에서 도어 타입 확인
+        const productName = selectedProductObj?.name || "";
+        const productNameLower = productName.toLowerCase();
+        const isBasicDoor = productNameLower.includes("베이직");
+        const isNaturalDoor = productNameLower.includes("내추럴");
+        const isLineDoor = productNameLower.includes("라인");
+        const isMinjaDoor = productNameLower.includes("민자");
+        
+        // 베이직, 내추럴, 라인 도어: 높이 2066 이상일 경우 +10,000원
+        if ((isBasicDoor || isNaturalDoor || isLineDoor) && heightNum >= 2066) {
+          additionalAmount += 10000;
+          reasons.push(`높이 ${heightNum}mm (+10,000원)`);
+        }
+        
+        // 민자 도어 계산 규칙
+        if (isMinjaDoor) {
+          // 1. 가로 951~1070 & 세로 2101~2260일 경우 +10,000원
+          if (widthNum >= 951 && widthNum <= 1070 && heightNum >= 2101 && heightNum <= 2260) {
+            additionalAmount += 10000;
+            reasons.push(`가로 ${widthNum}mm & 세로 ${heightNum}mm (+10,000원)`);
+          }
+          // 2. 높이 2261~2380일 경우 +20,000원
+          if (heightNum >= 2261 && heightNum <= 2380) {
+            additionalAmount += 20000;
+            reasons.push(`높이 ${heightNum}mm (+20,000원)`);
+          }
+          // 3. 가로 1071~1170 사이일 경우 +30,000원
+          if (widthNum >= 1071 && widthNum <= 1170) {
+            additionalAmount += 30000;
+            reasons.push(`가로 ${widthNum}mm (+30,000원)`);
+          }
+        }
+        
+        if (additionalAmount > 0) {
+          // unitPrice에 추가 금액 적용
+          const increasedUnitPrice = extendedResponse.unitPrice + additionalAmount;
+          
+          // totalPrice 재계산 (인상된 unitPrice + optionPrice) * quantity
+          const newTotalPrice = (increasedUnitPrice + extendedResponse.optionPrice) * extendedResponse.quantity;
+          
+          priceIncreaseInfo = {
+            rate: 0, // 고정 금액이므로 rate는 사용하지 않음
+            reason: `ABS 도어 추가 비용 (${reasons.join(", ")})`,
+          };
+          
+          extendedResponse = {
+            ...extendedResponse,
+            unitPrice: increasedUnitPrice,
+            totalPrice: newTotalPrice,
+            priceIncreaseInfo: priceIncreaseInfo,
+          };
+        }
+      }
+      // 일반 문틀인 경우 가격 인상 규칙 적용 (슬림문틀 제외)
+      else if (isFrame && !isSlimFrame && width && height) {
         const widthNum = parseInt(width);
         const heightNum = parseInt(height);
         let priceIncreaseRate = 0;
@@ -1812,13 +1872,24 @@ export function CalculatorTab() {
                 return true;
               });
             }
+            
             // 슬림문틀은 특정 옵션 두 개 제외 (첫 번째와 두 번째 옵션 제외)
-            else if (isSlimFrame && options.length > 0) {
+            if (isSlimFrame && options.length > 0) {
               // 옵션을 id 순서로 정렬 후 첫 두 개 제외
               const sortedOptions = [...options].sort((a, b) => a.id - b.id);
               const excludedIds = sortedOptions.slice(0, 2).map(opt => opt.id);
-              optionsToShow = options.filter(opt => !excludedIds.includes(opt.id));
+              optionsToShow = optionsToShow.filter(opt => !excludedIds.includes(opt.id));
             }
+            
+            // 모든 제품에서 "디자인 포인트 추가" 옵션 제외
+            optionsToShow = optionsToShow.filter(opt => {
+              const optName = (opt.name || "").trim().toLowerCase();
+              // 디자인 포인트 추가 옵션 제외
+              if (optName.includes("디자인 포인트") || optName.includes("오르토") || optName.includes("리벨")) {
+                return false;
+              }
+              return true;
+            });
             
             return optionsToShow.length > 0;
           })() && (
@@ -1869,12 +1940,22 @@ export function CalculatorTab() {
                     });
                   }
                   // 슬림문틀은 특정 옵션 두 개 제외 (첫 번째와 두 번째 옵션 제외)
-                  else if (isSlimFrame && options.length > 0) {
+                  if (isSlimFrame && options.length > 0) {
                     // 옵션을 id 순서로 정렬 후 첫 두 개 제외
                     const sortedOptions = [...options].sort((a, b) => a.id - b.id);
                     const excludedIds = sortedOptions.slice(0, 2).map(opt => opt.id);
-                    optionsToShow = options.filter(opt => !excludedIds.includes(opt.id));
+                    optionsToShow = optionsToShow.filter(opt => !excludedIds.includes(opt.id));
                   }
+                  
+                  // 모든 제품에서 "디자인 포인트 추가" 옵션 제외
+                  optionsToShow = optionsToShow.filter(opt => {
+                    const optName = (opt.name || "").trim().toLowerCase();
+                    // 디자인 포인트 추가 옵션 제외
+                    if (optName.includes("디자인 포인트") || optName.includes("오르토") || optName.includes("리벨")) {
+                      return false;
+                    }
+                    return true;
+                  });
                   
                   return optionsToShow;
                 })()

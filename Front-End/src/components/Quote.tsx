@@ -1,9 +1,40 @@
+import { useState, useEffect } from 'react';
 import { CalculatorTab } from './Quote/CalculatorTab';
 import { WoodTab } from './Quote/WoodTab';
+import { AIChatTab } from './Quote/AIChatTab';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
-import { Calculator, Package } from 'lucide-react';
+import { Calculator, Package, Bot } from 'lucide-react';
 
 export function Quote() {
+  const [activeTab, setActiveTab] = useState('calculator');
+
+  // URL 해시나 쿼리 파라미터로 탭 전환 지원
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash === '#ai' || hash === '#ai-chat') {
+        setActiveTab('ai');
+      }
+    };
+
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // 전역 이벤트로 탭 전환 지원 (Hero에서 사용)
+  useEffect(() => {
+    const handleTabChange = (e: Event) => {
+      const customEvent = e as CustomEvent<string>;
+      if (customEvent.detail) {
+        setActiveTab(customEvent.detail);
+      }
+    };
+
+    window.addEventListener('changeTab', handleTabChange);
+    return () => window.removeEventListener('changeTab', handleTabChange);
+  }, []);
+
   return (
     <section id="quote" className="py-20 bg-gradient-to-b from-white via-slate-50/50 to-white pt-32">
       <div className="container mx-auto px-4">
@@ -17,7 +48,7 @@ export function Quote() {
         </div>
 
         <div className="max-w-6xl mx-auto">
-          <Tabs defaultValue="calculator" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="mb-6 bg-slate-100 p-1.5 rounded-xl">
               <TabsTrigger value="calculator" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md">
                 <Calculator className="w-4 h-4" />
@@ -27,12 +58,19 @@ export function Quote() {
                 <Package className="w-4 h-4" />
                 목재 자재
               </TabsTrigger>
+              <TabsTrigger value="ai" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md">
+                <Bot className="w-4 h-4" />
+                AI 상담
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="calculator">
               <CalculatorTab />
             </TabsContent>
             <TabsContent value="wood">
               <WoodTab />
+            </TabsContent>
+            <TabsContent value="ai">
+              <AIChatTab />
             </TabsContent>
           </Tabs>
         </div>

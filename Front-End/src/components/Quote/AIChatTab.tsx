@@ -1,35 +1,123 @@
-import { useState } from 'react';
-import { Card } from '../ui/card';
+import { useState, useRef, useEffect } from 'react';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../ui/card';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
-import { Bot, Phone, Send, Loader2 } from 'lucide-react';
-import type { Message } from '../../types';
+import { Bot, Send, Loader2, Calculator, ShoppingCart, RefreshCw, Plus, Trash2, CreditCard, FileDown } from 'lucide-react';
+import { toast } from 'sonner';
+import type { ExtendedEstimateResponse, CartItem } from '../../types/calculator';
 
-interface AIChatTabProps {
-  messages: Message[];
-  inputMessage: string;
-  isLoading: boolean;
-  onInputChange: (value: string) => void;
-  onSendMessage: () => void;
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
 }
 
-export function AIChatTab({
-  messages,
-  inputMessage,
-  isLoading,
-  onInputChange,
-  onSendMessage,
-}: AIChatTabProps) {
+export function AIChatTab() {
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      role: 'assistant',
+      content: '안녕하세요! 동서인테리어 AI 상담사입니다. 도어, 문틀, 목재 자재에 대한 견적 상담을 도와드리겠습니다. 무엇을 도와드릴까요?'
+    }
+  ]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  
+  // 예상 견적 및 장바구니 (CalculatorTab과 동일한 구조)
+  const [result, setResult] = useState<ExtendedEstimateResponse | null>(null);
+  const [cart, setCart] = useState<CartItem[]>([]);
+
+  // 메시지 추가 시 스크롤
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
+    }
+  }, [messages]);
+
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || isLoading) return;
+
+    const userMessage: Message = {
+      role: 'user',
+      content: inputMessage.trim()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInputMessage('');
+    setIsLoading(true);
+
+    // TODO: OpenAI 또는 Gemini API 호출
+    // 현재는 시뮬레이션 응답
+    setTimeout(() => {
+      const assistantMessage: Message = {
+        role: 'assistant',
+        content: 'AI 상담 기능은 현재 개발 중입니다. OpenAI API 또는 Gemini API를 연동하면 실제 상담이 가능합니다. 제품 견적은 왼쪽의 "도어/문틀 견적" 또는 "목재 자재" 탭을 이용해주세요.'
+      };
+      setMessages(prev => [...prev, assistantMessage]);
+      setIsLoading(false);
+    }, 1000);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const addToCart = () => {
+    if (!result) return;
+
+    const cartItem: CartItem = {
+      id: Date.now(),
+      productName: result.productName,
+      categoryName: result.categoryName || '',
+      subCategoryName: result.subCategoryName || '',
+      unitPrice: result.unitPrice,
+      optionPrice: result.optionPrice || 0,
+      quantity: result.quantity,
+      totalPrice: result.finalPrice || result.totalPrice,
+      selectedOptions: result.selectedOptions || [],
+      margin: result.margin,
+      marginAmount: result.marginAmount,
+      finalPrice: result.finalPrice || result.totalPrice,
+    };
+
+    setCart(prev => [...prev, cartItem]);
+    toast.success('장바구니에 추가되었습니다.');
+  };
+
+  const removeFromCart = (id: number) => {
+    setCart(prev => prev.filter(item => item.id !== id));
+    toast.success('장바구니에서 제거되었습니다.');
+  };
+
+  const calculateCartTotal = () => {
+    return cart.reduce((sum, item) => sum + (item.finalPrice || item.totalPrice), 0);
+  };
+
+  const generatePDF = () => {
+    // TODO: PDF 생성 로직 (CalculatorTab과 동일)
+    toast.info('PDF 생성 기능은 준비 중입니다.');
+  };
+
   return (
     <div className="grid lg:grid-cols-3 gap-6">
-      <Card className="lg:col-span-2 p-6 bg-pastel-100 border-2 border-pastel-300 shadow-lg shadow-pastel-200/20 rounded-3xl">
-        <h3 className="mb-4 flex items-center gap-2">
-          <Bot className="w-5 h-5 text-pastel-700" />
-          AI 상담사와 대화하기
+      {/* 왼쪽: AI 채팅 */}
+      <Card className="lg:col-span-2 p-6 rounded-3xl bg-gradient-to-br from-white to-slate-50/50 shadow-xl shadow-indigo-500/5">
+        <h3 className="mb-6 flex items-center gap-3 text-2xl font-bold">
+          <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 via-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
+            <Bot className="w-6 h-6 text-white" />
+          </div>
+          <span className="bg-gradient-to-r from-gray-900 via-indigo-700 to-gray-900 bg-clip-text text-transparent">
+            AI 상담사와 대화하기
+          </span>
         </h3>
         
-        <ScrollArea className="h-[500px] mb-4 border rounded-lg p-4 bg-gray-50">
+        <ScrollArea className="h-[500px] mb-4 pr-4" ref={scrollAreaRef}>
           <div className="space-y-4">
             {messages.map((message, index) => (
               <div
@@ -37,20 +125,29 @@ export function AIChatTab({
                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[80%] rounded-lg p-3 ${
+                  className={`max-w-[80%] rounded-2xl p-4 ${
                     message.role === 'user'
-                      ? 'bg-pastel-600 text-pastel-50'
-                      : 'bg-white border border-pastel-300'
+                      ? 'bg-gradient-to-br from-indigo-600 to-blue-600 text-white shadow-lg shadow-indigo-500/30'
+                      : 'bg-white border border-gray-200 shadow-sm'
                   }`}
                 >
-                  <p className="whitespace-pre-wrap">{message.content}</p>
+                  {message.role === 'assistant' && (
+                    <div className="flex items-center gap-2 mb-2">
+                      <Bot className="w-4 h-4 text-indigo-600" />
+                      <span className="text-xs font-medium text-indigo-600">AI 상담사</span>
+                    </div>
+                  )}
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
                 </div>
               </div>
             ))}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-white border border-gray-200 rounded-lg p-3">
-                  <Loader2 className="w-5 h-5 animate-spin text-pastel-700" />
+                <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <Bot className="w-4 h-4 text-indigo-600" />
+                    <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
+                  </div>
                 </div>
               </div>
             )}
@@ -60,62 +157,250 @@ export function AIChatTab({
         <div className="flex gap-2">
           <Input
             value={inputMessage}
-            onChange={(e) => onInputChange(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && onSendMessage()}
+            onChange={(e) => setInputMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
             placeholder="메시지를 입력하세요..."
             disabled={isLoading}
-            className="flex-1"
+            className="flex-1 bg-slate-50 border-gray-200 focus-visible:ring-indigo-500"
           />
-          <Button onClick={onSendMessage} disabled={isLoading || !inputMessage.trim()}>
+          <Button 
+            onClick={handleSendMessage} 
+            disabled={isLoading || !inputMessage.trim()}
+            className="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white shadow-lg shadow-indigo-500/30"
+          >
             {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           </Button>
         </div>
 
-        <div className="mt-4 p-4 bg-pastel-200 border border-pastel-400 rounded-lg">
-          <p className="text-sm text-pastel-800">
-            <strong>개발자 안내:</strong> OpenAI API 키를 환경 변수 <code className="bg-pastel-300 px-1 rounded">VITE_OPENAI_API_KEY</code>에 설정하세요.
-            프로덕션 환경에서는 보안을 위해 백엔드 서버에서 API를 호출해야 합니다.
+        <div className="mt-4 p-4 bg-indigo-50 rounded-xl border border-indigo-200">
+          <p className="text-sm text-indigo-800">
+            <strong>안내:</strong> AI 상담 기능은 OpenAI API 또는 Gemini API 연동 후 사용 가능합니다. 
+            현재는 시뮬레이션 모드입니다.
           </p>
         </div>
       </Card>
 
+      {/* 오른쪽: 예상 견적 및 장바구니 */}
       <div className="space-y-6">
-        <Card className="p-6 bg-pastel-100 border-2 border-pastel-300 shadow-lg shadow-pastel-200/20 rounded-3xl">
-          <h4 className="mb-4">AI 상담 안내</h4>
-          <ul className="space-y-2 text-sm text-gray-600">
-            <li className="flex items-start gap-2">
-              <span className="text-pastel-700">•</span>
-              <span>24시간 즉시 견적 상담</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-pastel-700">•</span>
-              <span>맞춤형 제품 추천</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-pastel-700">•</span>
-              <span>실시간 가격 계산</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-pastel-700">•</span>
-              <span>전문가 수준의 답변</span>
-            </li>
-          </ul>
+        {/* 현재 계산된 견적 */}
+        <Card className="p-6 bg-gradient-to-br from-indigo-50 to-blue-50/50 sticky top-4 rounded-3xl shadow-xl shadow-indigo-500/5">
+          <CardHeader className="pb-4 border-b border-gray-200">
+            <CardTitle className="text-lg flex items-center justify-between">
+              <span>예상 견적서</span>
+              <span className="text-sm font-normal text-gray-500">
+                VAT 별도
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4">
+            {!result ? (
+              <div className="text-center py-10 text-gray-400">
+                <Calculator className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                <p>
+                  AI 상담을 통해
+                  <br />
+                  견적을 받아보세요.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between font-medium text-lg">
+                    <span>{result.productName}</span>
+                  </div>
+                  {result.categoryName && (
+                    <div className="text-xs text-gray-500">
+                      {result.categoryName}
+                      {result.subCategoryName && ` > ${result.subCategoryName}`}
+                    </div>
+                  )}
+                  <div className="flex justify-between text-gray-600">
+                    <span>기본 단가</span>
+                    <span>{result.unitPrice.toLocaleString()}원</span>
+                  </div>
+                  {result.optionPrice !== 0 && (
+                    <div className="flex justify-between text-gray-600">
+                      <span>추가 옵션 합계</span>
+                      <span>
+                        {result.optionPrice > 0 ? '+' : ''} {result.optionPrice.toLocaleString()}원
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-gray-600">
+                    <span>수량</span>
+                    <span>{result.quantity}개</span>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-gray-200 mt-4 space-y-2">
+                  {result.finalPrice && (
+                    <>
+                      <div className="flex justify-between text-gray-600">
+                        <span>소계 (마진 적용 전)</span>
+                        <span>{(result.finalPrice - (result.marginAmount || 0)).toLocaleString()}원</span>
+                      </div>
+                      {result.margin && result.marginAmount && (
+                        <div className="flex justify-between text-blue-700 font-medium">
+                          <span>회사 마진 ({result.margin}%)</span>
+                          <span>+{result.marginAmount.toLocaleString()}원</span>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  
+                  <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+                    <span className="font-semibold text-gray-700">
+                      총 예상 금액
+                    </span>
+                    <span className="text-3xl font-extrabold bg-gradient-to-r from-indigo-700 to-blue-700 bg-clip-text text-gray-700">
+                      {(result.finalPrice || result.totalPrice).toLocaleString()}원
+                    </span>
+                  </div>
+                </div>
+              </>
+            )}
+          </CardContent>
+          {result && (
+            <CardFooter className="pt-2 flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setResult(null)}
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                초기화
+              </Button>
+              <Button
+                className="flex-1 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white shadow-lg shadow-indigo-500/30 hover:shadow-xl transition-all duration-300 hover:scale-105 rounded-xl font-semibold"
+                onClick={addToCart}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                장바구니에 추가
+              </Button>
+            </CardFooter>
+          )}
         </Card>
 
-        <Card className="p-6 bg-gradient-to-br from-pastel-600 to-pastel-700 text-pastel-50">
-          <h4 className="mb-2">빠른 상담</h4>
-          <p className="text-pastel-100 text-sm mb-4">
-            전화로 상담하시려면
-          </p>
-          <a href="tel:1588-7003">
-            <Button size="lg" className="w-full bg-white text-pastel-700 hover:bg-gray-100">
-              <Phone className="mr-2 w-5 h-5" />
-              1588-7003
-            </Button>
-          </a>
+        {/* 장바구니 */}
+        <Card className="p-6 bg-gradient-to-br from-slate-100 to-slate-50/50">
+          <CardHeader className="pb-4 border-b border-gray-200">
+            <CardTitle className="text-lg flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <ShoppingCart className="w-5 h-5" />
+                장바구니 ({cart.length})
+              </span>
+              <span className="text-sm font-normal text-gray-500">
+                VAT 별도
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4">
+            {cart.length === 0 ? (
+              <div className="text-center py-10 text-gray-400">
+                <ShoppingCart className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                <p>장바구니가 비어있습니다.</p>
+              </div>
+            ) : (
+              <>
+                <ScrollArea className="h-[400px] pr-4">
+                  <div className="space-y-4">
+                    {cart.map((item) => (
+                      <div
+                        key={item.id}
+                        className="p-5 bg-white rounded-2xl border border-gray-200 hover:border-indigo-300 hover:shadow-lg transition-all duration-300"
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex-1">
+                            <div className="font-medium text-base">{item.productName}</div>
+                            {item.categoryName && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                {item.categoryName}
+                                {item.subCategoryName && ` > ${item.subCategoryName}`}
+                              </div>
+                            )}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => removeFromCart(item.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <div className="space-y-1 text-sm text-gray-600 mt-2">
+                          <div className="flex justify-between">
+                            <span>기본 단가</span>
+                            <span>{item.unitPrice.toLocaleString()}원</span>
+                          </div>
+                          {item.optionPrice !== 0 && (
+                            <div className="flex justify-between">
+                              <span>추가 옵션</span>
+                              <span>
+                                {item.optionPrice > 0 ? '+' : ''} {item.optionPrice.toLocaleString()}원
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex justify-between">
+                            <span>수량</span>
+                            <span>{item.quantity}개</span>
+                          </div>
+                          <div className="flex justify-between font-semibold text-gray-800 pt-2 border-t border-gray-200 mt-2">
+                            <span>소계</span>
+                            <span>{(item.finalPrice || item.totalPrice).toLocaleString()}원</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+
+                <div className="pt-4 border-t border-gray-200 mt-4">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-lg text-gray-700">
+                      총 예상 금액
+                    </span>
+                    <span className="text-3xl font-bold bg-gradient-to-r from-indigo-700 to-blue-700 bg-clip-text text-transparent">
+                      {calculateCartTotal().toLocaleString()}원
+                    </span>
+                  </div>
+                </div>
+              </>
+            )}
+          </CardContent>
+          {cart.length > 0 && (
+            <CardFooter className="pt-2 flex flex-col gap-2">
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setCart([])}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  장바구니 비우기
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={generatePDF}
+                >
+                  <FileDown className="w-4 h-4 mr-2" />
+                  PDF로 변환
+                </Button>
+              </div>
+              <Button
+                className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white shadow-lg shadow-indigo-500/30 hover:shadow-xl transition-all duration-300 hover:scale-105 rounded-xl font-semibold h-12"
+                onClick={() => {
+                  toast.success(`주문하기 페이지로 이동합니다. (총 ${cart.length}개 항목, ${calculateCartTotal().toLocaleString()}원)`);
+                }}
+              >
+                <CreditCard className="w-4 h-4 mr-2" />
+                주문하기
+              </Button>
+            </CardFooter>
+          )}
         </Card>
       </div>
     </div>
   );
 }
-

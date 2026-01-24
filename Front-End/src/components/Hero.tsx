@@ -1,5 +1,5 @@
 import { Button } from "./ui/button";
-import { ArrowRight, Star } from "lucide-react";
+import { ArrowRight, Star, Bot, Sparkles } from "lucide-react";
 import { HERO_STATS } from "../constants";
 import { scrollToSection } from "../utils";
 
@@ -16,12 +16,12 @@ export function Hero() {
         }}></div>
         
         {/* 추가 그라데이션 레이어 */}
-        <div className="absolute inset-0 bg-gradient-to-br from-pastel-600/20 via-transparent to-pastel-700/10"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/20 via-transparent to-blue-700/10"></div>
         <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 via-gray-900/40 to-transparent"></div>
         
         {/* 빛나는 효과 */}
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-pastel-600/20 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-pastel-700/20 rounded-full blur-3xl"></div>
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-700/20 rounded-full blur-3xl"></div>
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
@@ -31,7 +31,7 @@ export function Hero() {
               {Array.from({ length: 5 }, (_, i) => (
                 <Star
                   key={i}
-                  className="w-4 h-4 fill-pastel-400 text-pastel-400 drop-shadow-lg"
+                  className="w-4 h-4 fill-indigo-400 text-indigo-400 drop-shadow-lg"
                 />
               ))}
             </div>
@@ -41,7 +41,7 @@ export function Hero() {
           </div>
 
           <h1 className="text-white mb-8 leading-tight">
-            <span className="block text-5xl md:text-7xl mb-3 font-extrabold drop-shadow-2xl bg-gradient-to-r from-white via-pastel-100 to-white bg-clip-text text-transparent animate-slide-up">
+            <span className="block text-5xl md:text-7xl mb-3 font-extrabold drop-shadow-2xl bg-gradient-to-r from-white via-indigo-100 to-white bg-clip-text text-transparent animate-slide-up">
               품격있는 공간,
             </span>
             <span className="block text-5xl md:text-7xl font-extrabold drop-shadow-2xl">
@@ -53,7 +53,7 @@ export function Hero() {
             창호, 도어, 중문까지 프리미엄 인테리어 솔루션을
             제공합니다.
             <br />
-            <span className="text-pastel-300 font-medium">정확한 시공과 합리적인 가격</span>으로 고객님의 만족을
+            <span className="text-indigo-300 font-medium">정확한 시공과 합리적인 가격</span>으로 고객님의 만족을
             책임집니다.
           </p>
 
@@ -61,10 +61,25 @@ export function Hero() {
             <Button
               size="lg"
               onClick={() => scrollToSection("quote")}
-              className="text-lg px-10 py-7 bg-gradient-to-r from-pastel-600 to-pastel-700 hover:from-pastel-700 hover:to-pastel-800 text-white shadow-2xl shadow-pastel-600/40 hover:shadow-2xl hover:shadow-pastel-600/50 transition-all duration-300 hover:scale-105 rounded-2xl font-semibold"
+              className="text-lg px-10 py-7 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white shadow-2xl shadow-indigo-500/40 hover:shadow-2xl hover:shadow-indigo-500/50 transition-all duration-300 hover:scale-105 rounded-2xl font-semibold"
             >
               무료 견적 상담받기
               <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Button>
+            <Button
+              size="lg"
+              onClick={() => {
+                scrollToSection("quote");
+                // AI 탭으로 이동하기 위해 커스텀 이벤트 발생
+                setTimeout(() => {
+                  window.dispatchEvent(new CustomEvent('changeTab', { detail: 'ai' }));
+                }, 300);
+              }}
+              className="text-lg px-10 py-7 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-2xl shadow-purple-500/40 hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 hover:scale-105 rounded-2xl font-semibold relative overflow-hidden group"
+            >
+              <Sparkles className="absolute top-0 left-0 w-full h-full opacity-20 group-hover:opacity-40 transition-opacity" />
+              <Bot className="mr-2 w-5 h-5 relative z-10" />
+              <span className="relative z-10">AI 상담 시작하기</span>
             </Button>
             <Button
               size="lg"
@@ -78,7 +93,7 @@ export function Hero() {
           <div className="grid grid-cols-3 gap-8 pt-12 border-t border-white/20 backdrop-blur-sm bg-white/5 rounded-3xl p-8">
             {HERO_STATS.map((stat, index) => (
               <div key={index} className="text-center group">
-                <div className="text-white text-5xl md:text-6xl mb-3 font-extrabold bg-gradient-to-br from-white to-pastel-200 bg-clip-text text-transparent group-hover:scale-110 transition-transform duration-300">
+                <div className="text-white text-5xl md:text-6xl mb-3 font-extrabold bg-gradient-to-br from-white to-indigo-200 bg-clip-text text-transparent group-hover:scale-110 transition-transform duration-300">
                   {stat.value}
                 </div>
                 <div className="text-white/90 text-sm md:text-base font-medium">

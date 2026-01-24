@@ -1,5 +1,6 @@
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { Header } from "./components/Header";
+import { Hero } from "./components/Hero";
 import { Quote } from "./components/Quote";
 import { Footer } from "./components/Footer";
 import { Login } from "./components/Login";
@@ -21,6 +22,7 @@ function AppContent() {
     <div className="min-h-screen">
       <Header />
       <main>
+        <Hero />
         <Quote />
       </main>
       <Footer />

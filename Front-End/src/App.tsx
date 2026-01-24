@@ -1,9 +1,22 @@
-import { Header } from './components/Header';
-import { Quote } from './components/Quote';
-import { Footer } from './components/Footer';
-import { Toaster } from './components/ui/sonner';
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { Header } from "./components/Header";
+import { Quote } from "./components/Quote";
+import { Footer } from "./components/Footer";
+import { Login } from "./components/Login";
+import { Toaster } from "./components/ui/sonner";
 
-export default function App() {
+function AppContent() {
+  const { isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) {
+    return (
+      <>
+        <Login />
+        <Toaster />
+      </>
+    );
+  }
+
   return (
     <div className="min-h-screen">
       <Header />
@@ -13,5 +26,13 @@ export default function App() {
       <Footer />
       <Toaster />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }

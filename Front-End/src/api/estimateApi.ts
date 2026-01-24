@@ -1,4 +1,10 @@
+import { authHeaders } from './authApi';
+
 const API_BASE_URL = 'http://localhost:8080/api';
+
+function headers(): Record<string, string> {
+  return { 'Content-Type': 'application/json', ...authHeaders() };
+}
 
 export interface Category {
   id: number;
@@ -67,10 +73,10 @@ export interface Color {
   };
 }
 
-// 서버 연결 확인
+// 서버 연결 확인 (로그인 상태에서 호출)
 export async function checkServerConnection(): Promise<boolean> {
   try {
-    const response = await fetch(`${API_BASE_URL}/estimates/ping`);
+    const response = await fetch(`${API_BASE_URL}/estimates/ping`, { headers: headers() });
     return response.ok;
   } catch (error) {
     return false;
@@ -82,12 +88,7 @@ export async function fetchCategories(companyId: number = 1): Promise<Category[]
   try {
     const url = `${API_BASE_URL}/categories?companyId=${companyId}`;
     console.log('메인 카테고리 조회 요청:', url);
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await fetch(url, { method: 'GET', headers: headers() });
     console.log('메인 카테고리 조회 응답 상태:', response.status);
     if (!response.ok) {
       const errorText = await response.text();
@@ -111,12 +112,7 @@ export async function fetchSubCategories(parentId: number): Promise<Category[]> 
   try {
     const url = `${API_BASE_URL}/subcategories?parentId=${parentId}`;
     console.log('세부 카테고리 조회 요청:', url);
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await fetch(url, { method: 'GET', headers: headers() });
     console.log('세부 카테고리 조회 응답 상태:', response.status);
     if (!response.ok) {
       const errorText = await response.text();
@@ -137,12 +133,7 @@ export async function fetchProducts(categoryId: number): Promise<Product[]> {
   try {
     const url = `${API_BASE_URL}/products?categoryId=${categoryId}`;
     console.log('제품 조회 요청:', url);
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await fetch(url, { method: 'GET', headers: headers() });
     console.log('제품 조회 응답 상태:', response.status);
     if (!response.ok) {
       const errorText = await response.text();
@@ -168,12 +159,7 @@ export async function fetchOptions(productId: number | null, companyId: number =
       ? `${API_BASE_URL}/options?productId=${productId}&companyId=${companyId}`
       : `${API_BASE_URL}/options?companyId=${companyId}`;
     console.log('옵션 조회 요청:', url);
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await fetch(url, { method: 'GET', headers: headers() });
     console.log('옵션 조회 응답 상태:', response.status);
     if (!response.ok) {
       const errorText = await response.text();
@@ -197,12 +183,7 @@ export async function fetchVariants(productId: number): Promise<ProductVariant[]
   try {
     const url = `${API_BASE_URL}/variants?productId=${productId}`;
     console.log('Variants 조회 요청:', url);
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await fetch(url, { method: 'GET', headers: headers() });
     console.log('Variants 조회 응답 상태:', response.status);
     if (!response.ok) {
       const errorText = await response.text();
@@ -226,12 +207,7 @@ export async function fetchColors(companyId: number = 1): Promise<Color[]> {
   try {
     const url = `${API_BASE_URL}/colors?companyId=${companyId}`;
     console.log('색상 조회 요청:', url);
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await fetch(url, { method: 'GET', headers: headers() });
     console.log('색상 조회 응답 상태:', response.status);
     if (!response.ok) {
       const errorText = await response.text();
@@ -254,9 +230,7 @@ export async function fetchColors(companyId: number = 1): Promise<Color[]> {
 export async function calculateEstimate(request: EstimateRequest): Promise<EstimateResponse> {
   const response = await fetch(`${API_BASE_URL}/estimates/calculate`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: headers(),
     body: JSON.stringify(request),
   });
   

@@ -1273,12 +1273,12 @@ export function CalculatorTab() {
 
   return (
     <div className="grid lg:grid-cols-3 gap-6">
-      <Card className="lg:col-span-2 p-8 rounded-3xl border-2 border-gray-400 shadow-xl shadow-pastel-200/20 bg-pastel-100">
+      <Card className="lg:col-span-2 p-8 rounded-3xl bg-gradient-to-br from-white to-slate-50/50 shadow-xl shadow-indigo-500/5">
         <h3 className="mb-8 flex items-center gap-3 text-2xl font-bold">
-          <div className="w-12 h-12 bg-gradient-to-br from-pastel-600 to-pastel-700 rounded-xl flex items-center justify-center shadow-lg shadow-pastel-600/30">
+          <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 via-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
             <Calculator className="w-6 h-6 text-white" />
           </div>
-          <span className="bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">상세 견적 계산기 - 쉐누</span>
+          <span className="bg-gradient-to-r from-gray-900 via-indigo-700 to-gray-900 bg-clip-text text-transparent">상세 견적 계산기 - 쉐누</span>
         </h3>
 
         <div className="space-y-6">
@@ -1291,7 +1291,7 @@ export function CalculatorTab() {
                 value={selectedCategory}
                 disabled={isLoadingData}
               >
-                <SelectTrigger className="bg-white border-2 border-gray-400">
+                <SelectTrigger className="bg-slate-50 border-gray-200">
                   <SelectValue placeholder="메인 카테고리 선택" />
                 </SelectTrigger>
                 <SelectContent className="bg-white">
@@ -1324,7 +1324,7 @@ export function CalculatorTab() {
                   value={selectedSubCategory}
                   disabled={!selectedCategory || isLoadingData}
                 >
-                  <SelectTrigger className="bg-white border-2 border-gray-400">
+                  <SelectTrigger className="bg-slate-50 border-gray-200">
                     <SelectValue placeholder="세부 카테고리 선택" />
                   </SelectTrigger>
                   <SelectContent className="bg-white">
@@ -1361,7 +1361,7 @@ export function CalculatorTab() {
                   value={selectedProduct}
                   disabled={(!selectedCategory && !selectedSubCategory) || isLoadingData}
                 >
-                  <SelectTrigger className="bg-white border-2 border-gray-400">
+                  <SelectTrigger className="bg-slate-50 border-gray-200">
                     <SelectValue placeholder="제품 선택" />
                   </SelectTrigger>
                   <SelectContent className="bg-white">
@@ -1402,7 +1402,7 @@ export function CalculatorTab() {
             // 일반 목창호인 경우 폭/높이 입력 필드 표시
             if (categoryCode === "WINDOW" && !isGansalWindow && selectedProduct) {
               return (
-                <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg border-2 border-gray-300">
+                <div className="grid grid-cols-2 gap-4 p-4 bg-slate-100 rounded-xl">
                   <div className="space-y-2">
                     <Label>가로폭 (mm)</Label>
                     <Input
@@ -1410,7 +1410,7 @@ export function CalculatorTab() {
                       placeholder="예: 1000"
                       value={width}
                       onChange={(e) => setWidth(e.target.value)}
-                      className="border-2 border-gray-400"
+                      className="bg-white border-gray-200"
                     />
                   </div>
                   <div className="space-y-2">
@@ -1420,7 +1420,7 @@ export function CalculatorTab() {
                       placeholder="예: 2100"
                       value={height}
                       onChange={(e) => setHeight(e.target.value)}
-                      className="border-2 border-gray-400"
+                      className="bg-white border-gray-200"
                     />
                   </div>
                 </div>
@@ -1441,7 +1441,7 @@ export function CalculatorTab() {
             
             if (isABSDoor) {
               return (
-                <div className="grid grid-cols-2 gap-4 p-4 bg-pastel-100 rounded-lg border-2 border-gray-400">
+                <div className="grid grid-cols-2 gap-4 p-4 bg-indigo-50 rounded-xl">
                   <div className="space-y-2">
                     <Label>가로 폭 (mm)</Label>
                     <Input
@@ -1449,7 +1449,7 @@ export function CalculatorTab() {
                       placeholder="1000"
                       value={width || "1000"}
                       onChange={(e) => setWidth(e.target.value)}
-                      className="bg-white border-2 border-gray-400"
+                      className="bg-white border-gray-200"
                     />
                   </div>
                   <div className="space-y-2">
@@ -1459,7 +1459,7 @@ export function CalculatorTab() {
                       placeholder="2100"
                       value={height || "2100"}
                       onChange={(e) => setHeight(e.target.value)}
-                      className="bg-white border-2 border-gray-400"
+                      className="bg-white border-gray-200"
                     />
                   </div>
                 </div>
@@ -1470,7 +1470,7 @@ export function CalculatorTab() {
 
           {/* 3연동 중문: 가로/세로 입력 */}
           {categoryCode === "INTERLOCK" && (
-            <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg border-2 border-gray-300">
+            <div className="grid grid-cols-2 gap-4 p-4 bg-slate-100 rounded-xl border-gray-200">
               <div className="space-y-2">
                 <Label>가로 폭 (mm)</Label>
                 <Input
@@ -1478,7 +1478,7 @@ export function CalculatorTab() {
                   placeholder="예: 1200"
                   value={width}
                       onChange={(e) => setWidth(e.target.value)}
-                      className="border-2 border-gray-400"
+                      className="bg-white border-gray-200"
                     />
               </div>
               <div className="space-y-2">
@@ -1488,7 +1488,7 @@ export function CalculatorTab() {
                   placeholder="예: 2100"
                   value={height}
                       onChange={(e) => setHeight(e.target.value)}
-                      className="border-2 border-gray-400"
+                      className="bg-white border-gray-200"
                     />
               </div>
             </div>
@@ -1506,7 +1506,7 @@ export function CalculatorTab() {
             // 목재문틀인 경우: 규격 110, 140, 170, 200 + 가로/세로 입력
             if (isWoodFrame) {
               return (
-                <div className="space-y-4 p-4 bg-gray-50 rounded-lg border-2 border-gray-300">
+                <div className="space-y-4 p-4 bg-slate-100 rounded-xl border-gray-200">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>가로 폭 (mm)</Label>
@@ -1515,7 +1515,7 @@ export function CalculatorTab() {
                         placeholder="예: 900"
                         value={width}
                       onChange={(e) => setWidth(e.target.value)}
-                      className="border-2 border-gray-400"
+                      className="bg-white border-gray-200"
                     />
                     </div>
                     <div className="space-y-2">
@@ -1525,14 +1525,14 @@ export function CalculatorTab() {
                         placeholder="예: 2100"
                         value={height}
                       onChange={(e) => setHeight(e.target.value)}
-                      className="border-2 border-gray-400"
+                      className="bg-white border-gray-200"
                     />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label>규격</Label>
                     <Select onValueChange={setSpecName} value={specName}>
-                      <SelectTrigger className="bg-white border-2 border-gray-400">
+                      <SelectTrigger className="bg-white border-gray-200">
                         <SelectValue placeholder="규격 선택" />
                       </SelectTrigger>
                       <SelectContent className="bg-white">
@@ -1546,7 +1546,7 @@ export function CalculatorTab() {
                   <div className="space-y-2">
                     <Label>타입</Label>
                     <Select onValueChange={setTypeName} value={typeName}>
-                      <SelectTrigger className="bg-white border-2 border-gray-400">
+                      <SelectTrigger className="bg-white border-gray-200">
                         <SelectValue placeholder="타입 선택" />
                       </SelectTrigger>
                       <SelectContent className="bg-white">
@@ -1563,7 +1563,7 @@ export function CalculatorTab() {
             
             // PVC 발포문틀, 슬림문틀인 경우: 가로/세로 입력 추가
             return (
-              <div className="space-y-4 p-4 bg-gray-50 rounded-lg border-2 border-gray-300">
+              <div className="space-y-4 p-4 bg-slate-100 rounded-xl border-gray-200">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>가로 폭 (mm)</Label>
@@ -1572,7 +1572,7 @@ export function CalculatorTab() {
                       placeholder="예: 900"
                       value={width}
                       onChange={(e) => setWidth(e.target.value)}
-                      className="border-2 border-gray-400"
+                      className="bg-white border-gray-200"
                     />
                   </div>
                   <div className="space-y-2">
@@ -1582,14 +1582,14 @@ export function CalculatorTab() {
                       placeholder="예: 2100"
                       value={height}
                       onChange={(e) => setHeight(e.target.value)}
-                      className="border-2 border-gray-400"
+                      className="bg-white border-gray-200"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label>문틀 규격 (바 두께)</Label>
                   <Select onValueChange={setSpecName} value={specName}>
-                    <SelectTrigger className="bg-white border-2 border-gray-400">
+                    <SelectTrigger className="bg-white border-gray-200">
                       <SelectValue placeholder="규격 선택" />
                     </SelectTrigger>
                     <SelectContent className="bg-white">
@@ -1611,7 +1611,7 @@ export function CalculatorTab() {
                   <div className="space-y-2">
                     <Label>타입</Label>
                     <Select onValueChange={setTypeName} value={typeName}>
-                      <SelectTrigger className="bg-white border-2 border-gray-400">
+                      <SelectTrigger className="bg-white border-gray-200">
                         <SelectValue placeholder="타입 선택" />
                       </SelectTrigger>
                       <SelectContent className="bg-white">
@@ -1633,7 +1633,7 @@ export function CalculatorTab() {
 
           {/* 몰딩: 타입 먼저 선택, 그에 따른 규격 출력 */}
           {categoryCode === "MOLDING" && selectedProduct && (
-            <div className="space-y-4 p-4 bg-gray-50 rounded-lg border-2 border-gray-300">
+            <div className="space-y-4 p-4 bg-slate-100 rounded-xl border-gray-200">
               <div className="space-y-2">
                 <Label>타입 (type_name)</Label>
                 <Select onValueChange={(value) => {
@@ -1642,7 +1642,7 @@ export function CalculatorTab() {
                   const firstSpec = variants.find(v => v.typeName === value)?.specName;
                   setSpecName(firstSpec || "");
                 }} value={typeName}>
-                  <SelectTrigger className="bg-white border-2 border-gray-400">
+                  <SelectTrigger className="bg-white border-gray-200">
                     <SelectValue placeholder="타입 선택" />
                   </SelectTrigger>
                   <SelectContent className="bg-white">
@@ -1666,7 +1666,7 @@ export function CalculatorTab() {
                 <div className="space-y-2">
                   <Label>규격 (spec_name)</Label>
                   <Select onValueChange={setSpecName} value={specName}>
-                    <SelectTrigger className="bg-white border-2 border-gray-400">
+                    <SelectTrigger className="bg-white border-gray-200">
                       <SelectValue placeholder="규격 선택" />
                     </SelectTrigger>
                     <SelectContent className="bg-white">
@@ -1684,7 +1684,7 @@ export function CalculatorTab() {
               )}
               {/* 선택된 타입과 규격 정보 표시 */}
               {typeName && specName && (
-                <div className="p-3 bg-blue-50 rounded-md border-2 border-blue-400">
+                <div className="p-3 bg-blue-50 rounded-md border-blue-200">
                   <div className="text-sm text-gray-700">
                     <div className="font-medium mb-1">선택된 정보:</div>
                     <div>타입: <span className="font-semibold">{typeName}</span></div>
@@ -1710,7 +1710,7 @@ export function CalculatorTab() {
             // 간살 목창호만 타입 선택 UI 표시 (일반 목창호는 제품 선택만)
             if (categoryCode === "WINDOW" && isGansalWindow) {
               return (
-                <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+                <div className="space-y-4 p-4 bg-slate-100 rounded-xl">
                   <div className="space-y-2">
                     <Label>타입</Label>
                     <Select 
@@ -1738,7 +1738,7 @@ export function CalculatorTab() {
                       }} 
                       value={typeName}
                     >
-                      <SelectTrigger className="bg-white border-2 border-gray-400">
+                      <SelectTrigger className="bg-white border-gray-200">
                         <SelectValue placeholder="타입 선택" />
                       </SelectTrigger>
                       <SelectContent className="bg-white">
@@ -1755,7 +1755,7 @@ export function CalculatorTab() {
                         placeholder="예: 350"
                         value={width}
                         onChange={(e) => setWidth(e.target.value)}
-                        className="border-2 border-gray-400"
+                        className="bg-white border-gray-200"
                       />
                     </div>
                     <div className="space-y-2">
@@ -1765,7 +1765,7 @@ export function CalculatorTab() {
                         placeholder="예: 2100"
                         value={height}
                         onChange={(e) => setHeight(e.target.value)}
-                        className="border-2 border-gray-400"
+                        className="bg-white border-gray-200"
                       />
                     </div>
                   </div>
@@ -1777,7 +1777,7 @@ export function CalculatorTab() {
 
           {/* 필름: 규격 선택 시 타입 자동 결정 */}
           {categoryCode === "FILM" && selectedProduct && (
-            <div className="space-y-4 p-4 bg-gray-50 rounded-lg border-2 border-gray-300">
+            <div className="space-y-4 p-4 bg-slate-100 rounded-xl border-gray-200">
               <div className="space-y-2">
                 <Label>규격 (spec_name)</Label>
                 <Select onValueChange={(value) => {
@@ -1788,7 +1788,7 @@ export function CalculatorTab() {
                     setTypeName(matchedVariant.typeName);
                   }
                 }} value={specName}>
-                  <SelectTrigger className="bg-white border-2 border-gray-400">
+                  <SelectTrigger className="bg-white border-gray-200">
                     <SelectValue placeholder="규격 선택" />
                   </SelectTrigger>
                   <SelectContent className="bg-white">
@@ -1810,13 +1810,13 @@ export function CalculatorTab() {
               </div>
               {/* 선택된 규격과 타입 정보 표시 (타입은 자동 결정) */}
               {specName && typeName && (
-                <div className="p-4 bg-gradient-to-br from-pastel-200 to-pastel-300 rounded-2xl border-2 border-gray-500 shadow-lg shadow-pastel-200/30">
+                <div className="p-4 bg-gradient-to-br from-indigo-100 to-blue-100 rounded-2xl shadow-lg shadow-indigo-500/10">
                   <div className="text-sm text-gray-700">
                     <div className="font-medium mb-1">선택된 정보:</div>
                     <div>규격: <span className="font-semibold">{specName}</span></div>
                     <div>타입: <span className="font-semibold">{typeName}</span></div>
                     {variants.find(v => v.specName === specName && v.typeName === typeName) && (
-                      <div className="mt-1 text-pastel-700">
+                      <div className="mt-1 text-indigo-700">
                         단가: {variants.find(v => v.specName === specName && v.typeName === typeName)?.price.toLocaleString()}원
                       </div>
                     )}
@@ -1963,7 +1963,7 @@ export function CalculatorTab() {
                   .map((opt) => (
                   <div
                     key={opt.id}
-                    className="flex items-center space-x-2 border-2 border-gray-300 p-3 rounded-md hover:bg-gray-50"
+                    className="flex items-center space-x-2 border-gray-200 p-3 rounded-md hover:bg-gray-50"
                   >
                     <Checkbox
                       id={`opt-${opt.id}`}
@@ -1994,7 +1994,7 @@ export function CalculatorTab() {
                 <PopoverTrigger asChild>
                   <button
                     type="button"
-                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] border-2 border-gray-400 bg-background text-foreground hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-9 px-4 py-2 w-full justify-between bg-white hover:bg-gray-50"
+                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] border-gray-200 bg-background text-foreground hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-9 px-4 py-2 w-full justify-between bg-white hover:bg-gray-50"
                   >
                     <span className="flex items-center gap-2">
                       {selectedColor ? (
@@ -2005,13 +2005,13 @@ export function CalculatorTab() {
                               <>
                                 {color.colorCode && (
                                   <div
-                                    className="w-4 h-4 rounded border-2 border-gray-400"
+                                    className="w-4 h-4 rounded border-gray-200"
                                     style={{ backgroundColor: color.colorCode }}
                                   />
                                 )}
                                 <span>{color.name}</span>
                                 {color.cost && color.cost > 0 && (
-                                  <span className="text-xs text-pastel-700 font-medium">
+                                  <span className="text-xs text-indigo-700 font-medium">
                                     (+{Math.round(color.cost * 100)}%)
                                   </span>
                                 )}
@@ -2028,7 +2028,7 @@ export function CalculatorTab() {
                     <Search className="h-4 w-4 opacity-50" />
                   </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[400px] p-0 bg-white border-2 border-gray-400" align="start">
+                <PopoverContent className="w-[400px] p-0 bg-white border-gray-200" align="start">
                   <div className="p-3 border-b">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -2113,16 +2113,16 @@ export function CalculatorTab() {
                               setIsColorPopoverOpen(false);
                               setColorSearchQuery("");
                             }}
-                            className={`w-full text-left p-3 rounded-md hover:bg-pastel-100 transition-colors ${
+                            className={`w-full text-left p-3 rounded-md hover:bg-indigo-50 transition-colors ${
                               selectedColor === color.id.toString()
-                                ? "bg-pastel-200 border-2 border-gray-600"
-                                : "border-2 border-gray-300"
+                                ? "bg-indigo-100 border-indigo-300 bg-indigo-50"
+                                : "border-gray-200"
                             }`}
                           >
                             <div className="flex items-center gap-3">
                               {color.colorCode && (
                                 <div
-                                  className="w-8 h-8 rounded border-2 border-gray-400 flex-shrink-0"
+                                  className="w-8 h-8 rounded border-gray-200 flex-shrink-0"
                                   style={{ backgroundColor: color.colorCode }}
                                 />
                               )}
@@ -2133,7 +2133,7 @@ export function CalculatorTab() {
                                 )}
                               </div>
                               {color.cost && color.cost > 0 && (
-                                <div className="text-xs font-semibold text-pastel-700 bg-pastel-200 px-2 py-1 rounded">
+                                <div className="text-xs font-semibold text-indigo-700 bg-indigo-100 px-2 py-1 rounded">
                                   +{Math.round(color.cost * 100)}%
                                 </div>
                               )}
@@ -2161,7 +2161,7 @@ export function CalculatorTab() {
           )}
 
           {/* 회사 마진 입력 */}
-          <div className="space-y-2 p-4 bg-blue-50 rounded-lg border-2 border-blue-400">
+          <div className="space-y-2 p-4 bg-blue-50 rounded-lg border-blue-200">
             <Label className="text-base font-semibold text-blue-900">회사 마진 설정</Label>
             <div className="flex items-center gap-2">
               <Input
@@ -2200,7 +2200,7 @@ export function CalculatorTab() {
                 min={1}
                 value={quantity}
                       onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                      className="border-2 border-gray-400"
+                      className="bg-white border-gray-200"
               />
             </div>
             <Button
@@ -2244,7 +2244,7 @@ export function CalculatorTab() {
       {/* 결과 표시 영역 */}
       <div className="space-y-6">
         {/* 현재 계산된 견적 */}
-        <Card className="p-6 border-gray-400 bg-pastel-100 sticky top-4 rounded-3xl shadow-xl shadow-pastel-200/20 border-2">
+        <Card className="p-6 bg-gradient-to-br from-indigo-50 to-blue-50/50 sticky top-4 rounded-3xl shadow-xl shadow-indigo-500/5">
           <CardHeader className="pb-4 border-b-2 border-gray-400">
             <CardTitle className="text-lg flex items-center justify-between">
               <span>예상 견적서</span>
@@ -2308,7 +2308,7 @@ export function CalculatorTab() {
                         {selectedColorObj.colorCode && (
                           <>
                             <div
-                              className="w-4 h-4 rounded border-2 border-gray-400"
+                              className="w-4 h-4 rounded border-gray-200"
                               style={{ backgroundColor: selectedColorObj.colorCode }}
                             />
                             <span>({selectedColorObj.colorCode})</span>
@@ -2323,8 +2323,8 @@ export function CalculatorTab() {
                   </div>
                   {/* @ts-ignore - 가격 인상 정보 표시 */}
                   {result.priceIncreaseInfo && (
-                    <div className="flex justify-between items-center bg-pastel-200/50 p-2 rounded-md border-2 border-gray-500">
-                      <span className="text-sm text-pastel-800 font-medium">
+                    <div className="flex justify-between items-center bg-indigo-100/70 p-2 rounded-lg">
+                      <span className="text-sm text-indigo-800 font-medium">
                         {/* @ts-ignore */}
                         {result.priceIncreaseInfo.reason}
                         {/* @ts-ignore */}
@@ -2334,8 +2334,8 @@ export function CalculatorTab() {
                   )}
                   {/* @ts-ignore - 색상 cost 정보 표시 */}
                   {result.colorCostInfo && (
-                    <div className="flex justify-between items-center bg-pastel-200/50 p-2 rounded-md border-2 border-gray-500">
-                      <span className="text-sm text-pastel-800 font-medium">
+                    <div className="flex justify-between items-center bg-indigo-100/70 p-2 rounded-lg">
+                      <span className="text-sm text-indigo-800 font-medium">
                         {/* @ts-ignore */}
                         색상 추가 비용 ({result.colorCostInfo.colorName}) ({Math.round(result.colorCostInfo.costRate * 100)}% 인상)
                       </span>
@@ -2377,11 +2377,11 @@ export function CalculatorTab() {
                     </>
                   ) : null}
                   
-                  <div className="flex justify-between items-center pt-2 border-t-2 border-gray-400">
+                  <div className="flex justify-between items-center pt-2 border-t border-gray-200">
                     <span className="font-semibold text-gray-700">
                       총 예상 금액
                     </span>
-                    <span className="text-3xl font-extrabold bg-gradient-to-r from-pastel-700 to-pastel-800 bg-clip-text text-gray-700">
+                    <span className="text-3xl font-extrabold bg-gradient-to-r from-indigo-700 to-blue-700 bg-clip-text text-gray-700">
                       {(result.finalPrice || result.totalPrice).toLocaleString()}원
                     </span>
                   </div>
@@ -2400,7 +2400,7 @@ export function CalculatorTab() {
                 초기화
               </Button>
               <Button
-                className="flex-1 bg-gradient-to-r from-pastel-600 to-pastel-700 hover:from-pastel-700 hover:to-pastel-800 text-black shadow-lg shadow-pastel-600/30 hover:shadow-xl transition-all duration-300 hover:scale-105 rounded-xl font-semibold"
+                className="flex-1 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white shadow-lg shadow-indigo-500/30 hover:shadow-xl transition-all duration-300 hover:scale-105 rounded-xl font-semibold"
                 onClick={addToCart}
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -2411,8 +2411,8 @@ export function CalculatorTab() {
         </Card>
 
         {/* 장바구니 */}
-        <Card className="p-6 border-gray-500 bg-pastel-200/50 border-2">
-          <CardHeader className="pb-4 border-b-2 border-gray-400">
+        <Card className="p-6 bg-gradient-to-br from-slate-100 to-slate-50/50">
+          <CardHeader className="pb-4 border-b border-gray-200">
             <CardTitle className="text-lg flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <ShoppingCart className="w-5 h-5" />
@@ -2436,7 +2436,7 @@ export function CalculatorTab() {
                   {cart.map((item) => (
                     <div
                       key={item.id}
-                      className="p-5 bg-pastel-50 rounded-2xl border-2 border-gray-400 hover:border-gray-600 hover:shadow-lg transition-all duration-300"
+                      className="p-5 bg-white rounded-2xl border border-gray-200 hover:border-indigo-300 hover:shadow-lg transition-all duration-300"
                     >
                       <div className="flex justify-between items-start mb-2">
                         <div className="flex-1">

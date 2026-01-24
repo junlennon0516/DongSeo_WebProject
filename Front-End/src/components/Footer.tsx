@@ -11,12 +11,12 @@ export function Footer() {
                 <div className="grid md:grid-cols-2 gap-12 mb-8">
                     <div>
                         <div className="flex items-center gap-3 mb-6">
-                            <div className="w-14 h-14 bg-gradient-to-br from-pastel-600 to-pastel-700 rounded-2xl flex items-center justify-center shadow-lg shadow-pastel-600/30">
+                            <div className="w-14 h-14 bg-gradient-to-br from-indigo-600 via-blue-600 to-indigo-700 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
                                 <span className="text-white font-bold text-xl">
                                     동서
                                 </span>
                             </div>
-                            <span className="font-bold text-2xl bg-gradient-to-r from-white to-pastel-200 bg-clip-text text-transparent">
+                            <span className="font-bold text-2xl bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
                                 동서인테리어
                             </span>
                         </div>
@@ -36,7 +36,7 @@ export function Footer() {
                                 </div>
                                 <a
                                     href={`tel:${CONTACT_INFO.phone}`}
-                                    className="text-gray-300 hover:text-pastel-400 transition-colors font-medium"
+                                    className="text-gray-300 hover:text-indigo-400 transition-colors font-medium"
                                 >
                                     {CONTACT_INFO.phone}
                                 </a>
@@ -47,7 +47,7 @@ export function Footer() {
                                 </div>
                                 <a
                                     href={`mailto:${CONTACT_INFO.email}`}
-                                    className="text-gray-300 hover:text-pastel-400 transition-colors font-medium"
+                                    className="text-gray-300 hover:text-indigo-400 transition-colors font-medium"
                                 >
                                     {CONTACT_INFO.email}
                                 </a>

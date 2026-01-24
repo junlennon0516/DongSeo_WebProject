@@ -494,12 +494,12 @@ export function WoodTab() {
   return (
     <div className="grid lg:grid-cols-3 gap-6">
       {/* 좌측: 카테고리 및 제품 선택 */}
-      <Card className="lg:col-span-2 p-8 rounded-3xl border-2 border-gray-400 shadow-xl shadow-pastel-200/20 bg-pastel-100">
+      <Card className="lg:col-span-2 p-8 rounded-3xl bg-gradient-to-br from-white to-slate-50/50 shadow-xl shadow-indigo-500/5">
         <h3 className="mb-8 flex items-center gap-3 text-2xl font-bold">
-          <div className="w-12 h-12 bg-gradient-to-br from-pastel-600 to-pastel-700 rounded-xl flex items-center justify-center shadow-lg shadow-pastel-600/30">
+          <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 via-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
             <ShoppingCart className="w-6 h-6 text-white" />
           </div>
-          <span className="bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-gray-900 via-indigo-700 to-gray-900 bg-clip-text text-transparent">
             목재 자재 선택
           </span>
         </h3>
@@ -516,7 +516,7 @@ export function WoodTab() {
                   setSelectedSubCategory("");
                   setProducts([]);
                 }}
-                className="w-full px-3 py-2 border-2 border-gray-400 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-pastel-600"
+                className="w-full px-3 py-2 border border-gray-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 disabled={isLoading}
               >
                 <option value="">카테고리 선택</option>
@@ -538,7 +538,7 @@ export function WoodTab() {
                     setSelectedSubCategory(e.target.value);
                     setProducts([]);
                   }}
-                  className="w-full px-3 py-2 border-2 border-gray-400 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-pastel-600"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   disabled={!selectedCategory || isLoading}
                 >
                   <option value="">세부 카테고리 선택</option>
@@ -562,7 +562,7 @@ export function WoodTab() {
                   placeholder="제품명으로 검색..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 border-2 border-gray-400"
+                  className="pl-9 bg-slate-50 border-gray-200"
                 />
                 {searchQuery && (
                   <button
@@ -579,7 +579,7 @@ export function WoodTab() {
           {/* 제품 목록 */}
           {isLoading ? (
             <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-8 h-8 animate-spin text-pastel-600" />
+              <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
             </div>
           ) : filteredProducts.length > 0 ? (
             <ScrollArea className="h-[400px] pr-4">
@@ -587,10 +587,10 @@ export function WoodTab() {
                 {filteredProducts.map((product) => (
                   <Card
                     key={product.id}
-                    className={`p-4 border-2 transition-all cursor-pointer ${
+                    className={`p-4 border transition-all cursor-pointer ${
                       selectedProduct === product.id.toString()
-                        ? "border-pastel-600 bg-pastel-50"
-                        : "border-gray-300 hover:border-pastel-600"
+                        ? "border-indigo-300 bg-indigo-50"
+                        : "border-gray-200 hover:border-indigo-300 bg-white"
                     }`}
                     onClick={() => setSelectedProduct(product.id.toString())}
                   >
@@ -600,7 +600,7 @@ export function WoodTab() {
                         <p className="text-sm text-gray-600">{product.description}</p>
                       )}
                       <div className="flex justify-between items-center pt-2">
-                        <span className="text-pastel-700 font-bold text-lg">
+                        <span className="text-indigo-700 font-bold text-lg">
                           {product.basePrice?.toLocaleString()}원
                         </span>
                       </div>
@@ -623,7 +623,7 @@ export function WoodTab() {
           {selectedProduct && (
             <>
               {/* 회사 마진 입력 */}
-              <div className="space-y-2 p-4 bg-blue-50 rounded-lg border-2 border-blue-400">
+              <div className="space-y-2 p-4 bg-indigo-50 rounded-xl">
                 <Label className="text-base font-semibold text-blue-900">회사 마진 설정</Label>
                 <div className="flex items-center gap-2">
                   <Input
@@ -661,11 +661,11 @@ export function WoodTab() {
                     min={1}
                     value={quantity}
                     onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                    className="border-2 border-gray-400"
+                    className="bg-white border-gray-200"
                   />
                 </div>
                 <Button
-                  className="flex-1 bg-gradient-to-r from-pastel-600 to-pastel-700 hover:from-pastel-700 hover:to-pastel-800 h-12 text-black shadow-lg shadow-pastel-600/30 hover:shadow-xl hover:shadow-pastel-600/40 transition-all duration-300 hover:scale-105 rounded-xl font-semibold"
+                  className="flex-1 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 h-12 text-white shadow-lg shadow-indigo-500/30 hover:shadow-xl transition-all duration-300 hover:scale-105 rounded-xl font-semibold"
                   onClick={handleCalculate}
                   disabled={isLoading || !selectedProduct}
                 >
@@ -685,8 +685,8 @@ export function WoodTab() {
       {/* 우측: 예상 견적서 및 장바구니 */}
       <div className="space-y-6">
         {/* 현재 계산된 견적 */}
-        <Card className="p-6 border-gray-400 bg-pastel-100 sticky top-4 rounded-3xl shadow-xl shadow-pastel-200/20 border-2">
-          <CardHeader className="pb-4 border-b-2 border-gray-400">
+        <Card className="p-6 bg-gradient-to-br from-indigo-50 to-blue-50/50 sticky top-4 rounded-3xl shadow-xl shadow-indigo-500/5">
+          <CardHeader className="pb-4 border-b border-gray-200">
             <CardTitle className="text-lg flex items-center justify-between">
               <span>예상 견적서</span>
               <span className="text-sm font-normal text-gray-500">
@@ -742,11 +742,11 @@ export function WoodTab() {
                     </>
                   ) : null}
                   
-                  <div className="flex justify-between items-center pt-2 border-t-2 border-gray-400">
+                  <div className="flex justify-between items-center pt-2 border-t border-gray-200">
                     <span className="font-semibold text-gray-700">
                       총 예상 금액
                     </span>
-                    <span className="text-3xl font-extrabold bg-gradient-to-r from-pastel-700 to-pastel-800 bg-clip-text text-gray-700">
+                    <span className="text-3xl font-extrabold bg-gradient-to-r from-indigo-700 to-blue-700 bg-clip-text text-gray-700">
                       {(result.finalPrice || result.totalPrice).toLocaleString()}원
                     </span>
                   </div>
@@ -776,8 +776,8 @@ export function WoodTab() {
         </Card>
 
         {/* 장바구니 */}
-        <Card className="p-6 border-gray-500 bg-pastel-200/50 border-2">
-          <CardHeader className="pb-4 border-b-2 border-gray-400">
+        <Card className="p-6 bg-gradient-to-br from-slate-100 to-slate-50/50">
+          <CardHeader className="pb-4 border-b border-gray-200">
             <CardTitle className="text-lg flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <ShoppingCart className="w-5 h-5" />
@@ -801,7 +801,7 @@ export function WoodTab() {
                     {cart.map((item) => (
                       <div
                         key={item.id}
-                        className="p-5 bg-pastel-50 rounded-2xl border-2 border-gray-400 hover:border-gray-600 hover:shadow-lg transition-all duration-300"
+                        className="p-5 bg-white rounded-2xl border border-gray-200 hover:border-indigo-300 hover:shadow-lg transition-all duration-300"
                       >
                         <div className="flex justify-between items-start mb-2">
                           <div className="flex-1">

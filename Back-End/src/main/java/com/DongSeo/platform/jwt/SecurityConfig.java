@@ -15,6 +15,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -35,6 +36,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**", "/error").permitAll()
+                        .requestMatchers("/api/estimates/**", "/api/products/**", "/api/categories/**", "/api/subcategories/**", "/api/options/**", "/api/variants/**", "/api/colors/**").permitAll()
                         .requestMatchers("/api/admin/**").hasAnyRole("STAFF", "ADMIN")
                         .anyRequest().authenticated()
                 )
@@ -54,9 +56,11 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // 허용할 Origin 목록 (쉼표로 구분된 문자열을 리스트로 변환)
+        // 허용할 프론트엔드 도메인 (Vercel 주소 + 로컬호스트)
         List<String> origins = new ArrayList<>();
         origins.add("http://localhost:5173"); // 개발 환경
+        origins.add("https://dong-seo-web-project-1hw0o5w72-junlennons-projects.vercel.app");
+        origins.add("https://dong-seo-web-project.vercel.app"); // 기본 도메인
         
         // 환경 변수에서 추가 도메인 읽기 (쉼표로 구분)
         if (allowedOrigins != null && !allowedOrigins.isEmpty()) {
@@ -70,10 +74,10 @@ public class SecurityConfig {
         }
         
         configuration.setAllowedOrigins(origins);
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
-        configuration.setExposedHeaders(List.of("Authorization")); // 헤더 노출 허용
-        configuration.setAllowCredentials(true); // 쿠키/인증 헤더 허용
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setExposedHeaders(Arrays.asList("Authorization")); // 헤더 노출 허용
+        configuration.setAllowCredentials(true); // 쿠키/인증정보 포함 허용
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

@@ -14,9 +14,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -25,8 +23,6 @@ public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
 
-    @Value("${cors.allowed-origins:http://localhost:5173}")
-    private String allowedOrigins;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -56,28 +52,15 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // 허용할 프론트엔드 도메인 (Vercel 주소 + 로컬호스트)
-        List<String> origins = new ArrayList<>();
-        origins.add("http://localhost:5173"); // 개발 환경
-        origins.add("https://dong-seo-web-project-1hw0o5w72-junlennons-projects.vercel.app");
-        origins.add("https://dong-seo-web-project.vercel.app"); // 기본 도메인
+        // [중요] 모든 도메인 허용 (치트키 - 개발 단계용)
+        configuration.addAllowedOriginPattern("*");
         
-        // 환경 변수에서 추가 도메인 읽기 (쉼표로 구분)
-        if (allowedOrigins != null && !allowedOrigins.isEmpty()) {
-            String[] originsArray = allowedOrigins.split(",");
-            for (String origin : originsArray) {
-                String trimmed = origin.trim();
-                if (!trimmed.isEmpty() && !origins.contains(trimmed)) {
-                    origins.add(trimmed);
-                }
-            }
-        }
-        
-        configuration.setAllowedOrigins(origins);
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
+        // 주의: addAllowedOriginPattern("*")와 setAllowCredentials(true)는 함께 사용 불가
+        // JWT는 Authorization 헤더에 있으므로 credentials 불필요
+        configuration.setAllowCredentials(false);
         configuration.setExposedHeaders(Arrays.asList("Authorization")); // 헤더 노출 허용
-        configuration.setAllowCredentials(true); // 쿠키/인증정보 포함 허용
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

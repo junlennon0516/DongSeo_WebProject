@@ -22,6 +22,13 @@ public class JwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
+        // 0. 인증이 필요없는 경로는 바로 통과
+        String path = request.getRequestURI();
+        if (path.startsWith("/api/auth/")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         // 1. 헤더에서 토큰 추출
         String authorizationHeader = request.getHeader("Authorization");
 

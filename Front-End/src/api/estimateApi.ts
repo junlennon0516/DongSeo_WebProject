@@ -1,6 +1,8 @@
 import { authHeaders } from './authApi';
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = import.meta.env.DEV 
+  ? "http://localhost:8080/api" 
+  : "/api";
 
 function headers(): Record<string, string> {
   return { 'Content-Type': 'application/json', ...authHeaders() };

@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8080/api';
+import { API_BASE_URL } from '../config/api';
 const TOKEN_KEY = 'dongseo_access_token';
 const USERNAME_KEY = 'dongseo_username';
 

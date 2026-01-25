@@ -1,8 +1,5 @@
 import { authHeaders } from './authApi';
-
-const API_BASE_URL = import.meta.env.DEV 
-  ? "http://localhost:8080/api" 
-  : "/api";
+import { API_BASE_URL } from '../config/api';
 
 function headers(): Record<string, string> {
   return { 'Content-Type': 'application/json', ...authHeaders() };
@@ -103,7 +100,7 @@ export async function fetchCategories(companyId: number = 1): Promise<Category[]
   } catch (error: any) {
     console.error('메인 카테고리 조회 에러:', error);
     if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-      throw new Error('백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요. (http://localhost:8080)');
+      throw new Error('백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.');
     }
     throw error;
   }
@@ -148,7 +145,7 @@ export async function fetchProducts(categoryId: number): Promise<Product[]> {
   } catch (error: any) {
     console.error('제품 조회 에러:', error);
     if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-      throw new Error('백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요. (http://localhost:8080)');
+      throw new Error('백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.');
     }
     throw error;
   }
@@ -174,7 +171,7 @@ export async function fetchOptions(productId: number | null, companyId: number =
   } catch (error: any) {
     console.error('옵션 조회 에러:', error);
     if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-      throw new Error('백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요. (http://localhost:8080)');
+      throw new Error('백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.');
     }
     throw error;
   }
@@ -198,7 +195,7 @@ export async function fetchVariants(productId: number): Promise<ProductVariant[]
   } catch (error: any) {
     console.error('Variants 조회 에러:', error);
     if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-      throw new Error('백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요. (http://localhost:8080)');
+      throw new Error('백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.');
     }
     throw error;
   }
@@ -222,7 +219,7 @@ export async function fetchColors(companyId: number = 1): Promise<Color[]> {
   } catch (error: any) {
     console.error('색상 조회 에러:', error);
     if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-      throw new Error('백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요. (http://localhost:8080)');
+      throw new Error('백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.');
     }
     throw error;
   }

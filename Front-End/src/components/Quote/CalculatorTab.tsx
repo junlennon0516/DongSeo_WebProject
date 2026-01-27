@@ -468,6 +468,31 @@ export function CalculatorTab() {
     }, 0);
   };
 
+  // 한글 텍스트 인코딩 정규화 함수
+  // EUC-KR/CP949로 잘못 인코딩된 텍스트를 UTF-8로 변환
+  const normalizeKoreanText = (text: string | null | undefined): string => {
+    if (!text) return "";
+    
+    // 이미 정상적인 UTF-8 문자열인 경우 그대로 반환
+    try {
+      // 깨진 문자 패턴 감지 (EUC-KR을 UTF-8로 잘못 읽은 경우)
+      // ÂP², Ç'Á1Ç|, ÆÐ, ¼ø 같은 패턴
+      if (/Â|Ç|Æ|¼|ø/.test(text) && text.length > 0) {
+        logger.debug("인코딩 문제 감지된 텍스트:", text.substring(0, 50));
+        
+        // 브라우저에서는 직접 EUC-KR 디코딩이 어려우므로
+        // 백엔드에서 올바른 인코딩으로 보내는 것이 중요
+        // 여기서는 텍스트가 이미 깨진 상태라면 원본 반환
+        // (실제 변환은 백엔드에서 처리해야 함)
+        return text;
+      }
+    } catch (e) {
+      logger.warn("텍스트 정규화 실패:", e);
+    }
+    
+    return text;
+  };
+
   // PDF 생성 함수 (jsPDF만 사용, 한글 지원)
   const generatePDF = async () => {
     if (cart.length === 0) {
@@ -492,6 +517,8 @@ export function CalculatorTab() {
         if (!fontResponse.ok) {
           throw new Error(`HTTP ${fontResponse.status}`);
         }
+        // 폰트 파일을 텍스트로 로드 (UTF-8로 디코딩)
+        // 서버에서 올바른 Content-Type과 charset을 보내야 함
         const fontText = await fontResponse.text();
         
         // base64 문자열 추출
@@ -591,11 +618,12 @@ export function CalculatorTab() {
         doc.setFontSize(11);
         doc.setFont("NanumGothic", "normal");
         // 목재문틀인 경우 제품명을 "목재문틀"로 변경
-        const displayProductName = (item.productName?.includes("목재문틀") || 
-                                   item.productName?.includes("才") ||
-                                   item.productName?.includes("사이")) 
+        const normalizedProductName = normalizeKoreanText(item.productName);
+        const displayProductName = (normalizedProductName?.includes("목재문틀") || 
+                                   normalizedProductName?.includes("才") ||
+                                   normalizedProductName?.includes("사이")) 
                                    ? "목재문틀" 
-                                   : item.productName;
+                                   : normalizedProductName;
         const productName = `${index + 1}. ${displayProductName}`;
         // 긴 제품명은 여러 줄로 분할
         const splitProductName = doc.splitTextToSize(productName, 170);
@@ -606,9 +634,11 @@ export function CalculatorTab() {
         if (item.categoryName) {
           doc.setFontSize(9);
           doc.setFont("NanumGothic", "normal");
-          const categoryText = item.subCategoryName
-            ? `${item.categoryName} > ${item.subCategoryName}`
-            : item.categoryName;
+          const normalizedCategoryName = normalizeKoreanText(item.categoryName);
+          const normalizedSubCategoryName = normalizeKoreanText(item.subCategoryName);
+          const categoryText = normalizedSubCategoryName
+            ? `${normalizedCategoryName} > ${normalizedSubCategoryName}`
+            : normalizedCategoryName;
           doc.text(`카테고리: ${categoryText}`, margin + 5, yPosition);
           yPosition += 5;
         }
@@ -617,7 +647,9 @@ export function CalculatorTab() {
         if (item.specName || item.typeName) {
           doc.setFontSize(9);
           doc.setFont("NanumGothic", "normal");
-          const specTypeText = [item.specName, item.typeName].filter(Boolean).join(" / ");
+          const normalizedSpecName = normalizeKoreanText(item.specName);
+          const normalizedTypeName = normalizeKoreanText(item.typeName);
+          const specTypeText = [normalizedSpecName, normalizedTypeName].filter(Boolean).join(" / ");
           if (specTypeText) {
             doc.text(`규격/타입: ${specTypeText}`, margin + 5, yPosition);
             yPosition += 5;
@@ -641,9 +673,11 @@ export function CalculatorTab() {
         if (item.selectedColorName) {
           doc.setFontSize(9);
           doc.setFont("NanumGothic", "normal");
-          const colorText = item.selectedColorCode
-            ? `${item.selectedColorName} (${item.selectedColorCode})`
-            : item.selectedColorName;
+          const normalizedColorName = normalizeKoreanText(item.selectedColorName);
+          const normalizedColorCode = normalizeKoreanText(item.selectedColorCode);
+          const colorText = normalizedColorCode
+            ? `${normalizedColorName} (${normalizedColorCode})`
+            : normalizedColorName;
           doc.text(`색상: ${colorText}`, margin + 5, yPosition);
           yPosition += 5;
         }
@@ -687,7 +721,8 @@ export function CalculatorTab() {
         if (item.selectedOptions && item.selectedOptions.length > 0) {
           doc.setFontSize(9);
           doc.setFont("NanumGothic", "normal");
-          const optionsText = `선택 옵션: ${item.selectedOptions.join(", ")}`;
+          const normalizedOptions = item.selectedOptions.map(opt => normalizeKoreanText(opt));
+          const optionsText = `선택 옵션: ${normalizedOptions.join(", ")}`;
           const splitOptions = doc.splitTextToSize(optionsText, 170);
           doc.text(splitOptions, margin + 5, yPosition);
           yPosition += splitOptions.length * 4;

@@ -38,6 +38,21 @@ export const getFontUrl = (): string => {
   // API_BASE_URL에서 /api를 제거하고 루트 경로로 변경
   // 예: "http://localhost:8080/api" -> "http://localhost:8080"
   // 예: "/api" -> "" (같은 도메인)
-  const baseUrl = API_BASE_URL.replace(/\/api\/?$/, "");
-  return `${baseUrl}/NanumGothic-normal.js`;
+  let baseUrl = API_BASE_URL.replace(/\/api\/?$/, "");
+  
+  // 프로덕션에서 /api만 있는 경우 (프록시 사용)
+  if (baseUrl === "" || baseUrl === "/") {
+    // 같은 도메인에서 제공 (Vercel rewrites를 통해 백엔드로 프록시)
+    baseUrl = "";
+  }
+  
+  const fontUrl = `${baseUrl}/NanumGothic-normal.js`;
+  
+  // 디버깅용 로그
+  if (typeof window !== "undefined") {
+    // eslint-disable-next-line no-console
+    console.log("[getFontUrl] API_BASE_URL:", API_BASE_URL, "→ fontUrl:", fontUrl);
+  }
+  
+  return fontUrl;
 };

@@ -22,6 +22,12 @@ spring:
     username: root
     password: 5776
     driver-class-name: com.mysql.cj.jdbc.Driver
+  # HTTP 응답 인코딩 설정 (한글 깨짐 방지)
+  http:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
 
   jpa:
     hibernate:

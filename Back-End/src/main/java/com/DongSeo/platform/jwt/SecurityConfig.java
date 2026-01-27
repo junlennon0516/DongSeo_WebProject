@@ -34,10 +34,13 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // 정적 리소스 먼저 허용 (순서 중요!)
+                        .requestMatchers("/NanumGothic-normal.js", "/static/**", "/**/*.js", "/**/*.css", "/**/*.png", "/**/*.jpg", "/**/*.svg", "/**/*.ico", "/**/*.woff", "/**/*.ttf").permitAll()
+                        // API 엔드포인트
                         .requestMatchers("/api/auth/**", "/error").permitAll()
                         .requestMatchers("/api/estimates/**", "/api/products/**", "/api/categories/**", "/api/subcategories/**", "/api/options/**", "/api/variants/**", "/api/colors/**").permitAll()
                         .requestMatchers("/api/admin/**").hasAnyRole("STAFF", "ADMIN")
-                        .requestMatchers("/NanumGothic-normal.js").permitAll() // 폰트 파일 정적 리소스 허용
+                        // 나머지는 인증 필요
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(new JwtFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class);

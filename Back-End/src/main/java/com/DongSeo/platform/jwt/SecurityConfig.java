@@ -49,11 +49,30 @@ public class SecurityConfig {
 
     // CORS 설정
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+    public CorsConfigurationSource corsConfigurationSource(
+            @Value("${cors.allowed-origins:}") String allowedOrigins) {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // 모든 도메인 허용 (개발 단계용)
-        configuration.addAllowedOriginPattern("*");
+        // 환경 변수에 도메인이 있으면 사용, 없으면 모든 도메인 허용
+        if (allowedOrigins != null && !allowedOrigins.trim().isEmpty()) {
+            // 쉼표로 구분된 도메인 목록 파싱
+            String[] origins = allowedOrigins.split(",");
+            for (String origin : origins) {
+                String trimmed = origin.trim();
+                if (!trimmed.isEmpty()) {
+                    // Vercel 도메인 패턴 지원: *.vercel.app
+                    if (trimmed.contains("*")) {
+                        configuration.addAllowedOriginPattern(trimmed);
+                    } else {
+                        configuration.addAllowedOrigin(trimmed);
+                    }
+                }
+            }
+        } else {
+            // 환경 변수가 없으면 모든 도메인 허용 (개발/프로덕션 모두)
+            // Vercel 프리뷰 도메인이 매번 바뀌어도 자동 허용됨
+            configuration.addAllowedOriginPattern("*");
+        }
         
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));

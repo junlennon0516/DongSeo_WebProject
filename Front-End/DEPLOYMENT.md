@@ -92,20 +92,36 @@
 - 백엔드 서버가 `0.0.0.0:8080`으로 바인딩되어 있는지 확인 (localhost가 아닌)
 
 ### 2. CORS 설정
-백엔드 `application.yml` 또는 환경 변수로 Vercel 도메인을 설정합니다:
 
-**방법 1: application.yml 수정**
+**문제**: Vercel은 배포할 때마다 도메인이 달라질 수 있습니다
+- 프로덕션: `project-name.vercel.app` (고정)
+- 프리뷰: `project-name-git-branch-username.vercel.app` (매번 다름)
+- 커스텀 도메인: 사용자가 설정한 도메인
+
+**해결 방법** (백엔드 `SecurityConfig.java`에서 자동 처리):
+
+**옵션 1: 모든 도메인 허용 (권장 - 간단)**
+```bash
+# EC2 서버에서 환경 변수 비워두기 (또는 설정 안 함)
+# 기본값: 모든 도메인 허용 (*)
+export CORS_ALLOWED_ORIGINS=""
+```
+→ Vercel 프리뷰 도메인이 바뀌어도 자동 허용됨
+
+**옵션 2: Vercel 도메인 패턴 허용 (프로덕션 권장)**
+```bash
+# EC2 서버 환경 변수
+export CORS_ALLOWED_ORIGINS="http://localhost:5173,https://*.vercel.app,https://your-custom-domain.com"
+```
+→ `*.vercel.app` 패턴으로 모든 Vercel 서브도메인 허용
+
+**옵션 3: application.yml 수정**
 ```yaml
 cors:
-  allowed-origins: http://localhost:5173,https://your-app.vercel.app
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:}  # 비워두면 모든 도메인 허용
 ```
 
-**방법 2: 환경 변수 설정 (EC2 서버)**
-```bash
-export CORS_ALLOWED_ORIGINS="http://localhost:5173,https://your-app.vercel.app"
-```
-
-여러 도메인은 쉼표로 구분합니다.
+**확인**: 백엔드 로그에서 CORS 설정 확인
 
 ### 3. Vercel 환경 변수
 **Settings → Environment Variables** 에서:

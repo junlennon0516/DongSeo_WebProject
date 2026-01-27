@@ -30,14 +30,14 @@ export function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50 px-4">
-      <div className="w-full max-w-sm space-y-8 rounded-2xl bg-white/80 backdrop-blur-xl p-8 shadow-2xl shadow-indigo-500/10">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#FFF8DE] via-[#FFF2C6] to-[#FFF8DE] px-4">
+      <div className="w-full max-w-sm space-y-8 rounded-2xl bg-white/90 backdrop-blur-xl p-8 shadow-2xl shadow-[#8CA9FF]/10 border border-[#AAC4F5]/20">
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 via-blue-600 to-indigo-700 text-white font-bold text-xl shadow-lg shadow-indigo-500/30">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-[#8CA9FF] via-[#AAC4F5] to-[#8CA9FF] text-white font-bold text-xl shadow-lg shadow-[#8CA9FF]/30">
             동서
           </div>
           <h1 className="text-2xl font-bold text-gray-900">로그인</h1>
-          <p className="mt-1 text-sm text-gray-500">계정은 관리자가 생성·부여합니다.</p>
+          <p className="mt-1 text-sm text-gray-600">계정은 관리자가 생성·부여합니다.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -51,7 +51,7 @@ export function Login() {
               placeholder="아이디"
               autoComplete="username"
               disabled={loading}
-              className="bg-slate-50 border-gray-200 focus-visible:ring-indigo-500 focus-visible:border-indigo-500"
+              className="bg-[#FFF8DE] border-[#AAC4F5] focus-visible:ring-[#8CA9FF] focus-visible:border-[#8CA9FF]"
             />
           </div>
           <div className="space-y-2">
@@ -64,12 +64,12 @@ export function Login() {
               placeholder="비밀번호"
               autoComplete="current-password"
               disabled={loading}
-              className="bg-slate-50 border-gray-200 focus-visible:ring-indigo-500 focus-visible:border-indigo-500"
+              className="bg-[#FFF8DE] border-[#AAC4F5] focus-visible:ring-[#8CA9FF] focus-visible:border-[#8CA9FF]"
             />
           </div>
           <Button
             type="submit"
-            className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white shadow-lg shadow-indigo-500/30"
+            className="w-full bg-gradient-to-r from-[#8CA9FF] to-[#AAC4F5] hover:from-[#7A99FF] hover:to-[#9AB4E5] text-white shadow-lg shadow-[#8CA9FF]/30"
             disabled={loading}
           >
             {loading ? "로그인 중…" : "로그인"}

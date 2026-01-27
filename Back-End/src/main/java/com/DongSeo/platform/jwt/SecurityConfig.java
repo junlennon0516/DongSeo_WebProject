@@ -52,7 +52,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // [중요] 모든 도메인 허용 (치트키 - 개발 단계용)
+        // 모든 도메인 허용 (개발 단계용)
         configuration.addAllowedOriginPattern("*");
         
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));

@@ -4,3 +4,5 @@ openai
 langchain
 python-dotenv
 pydantic
+google-genai
+pymysql

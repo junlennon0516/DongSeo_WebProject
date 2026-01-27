@@ -6,6 +6,8 @@ jwt:
 # 예: cors.allowed-origins=http://localhost:5173,https://your-app.vercel.app
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:dong-seo-web-project-luff9ffxx-junlennons-projects.vercel.app}
+
 
 spring:
   datasource:

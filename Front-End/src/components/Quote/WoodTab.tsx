@@ -21,6 +21,7 @@ import {
   type Product,
 } from "../../api/estimateApi";
 import { COMPANY_ID } from "../../constants/calculator";
+import { getFontUrl } from "../../config/api";
 
 interface WoodProduct {
   id: string;
@@ -281,10 +282,12 @@ export function WoodTab() {
       const { jsPDF } = await import("jspdf");
       const doc = new jsPDF("p", "mm", "a4");
 
-      // 한글 폰트 로드
+      // 한글 폰트 로드 (백엔드 서버에서 제공)
       let fontLoaded = false;
       try {
-        const fontResponse = await fetch("/NanumGothic-normal.js");
+        const fontUrl = getFontUrl();
+        logger.debug("폰트 파일 URL:", fontUrl);
+        const fontResponse = await fetch(fontUrl);
         if (fontResponse.ok) {
           const fontText = await fontResponse.text();
           let fontBase64: string | null = null;

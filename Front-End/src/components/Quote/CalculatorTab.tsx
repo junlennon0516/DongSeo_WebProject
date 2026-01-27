@@ -38,6 +38,7 @@ import {
   type ProductVariant,
   type Color,
 } from "../../api/estimateApi";
+import { getFontUrl } from "../../config/api";
 
 export function CalculatorTab() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -484,8 +485,10 @@ export function CalculatorTab() {
       let fontLoaded = false;
       
       try {
-        // base64로 인코딩된 폰트 파일 로드
-        const fontResponse = await fetch("/NanumGothic-normal.js");
+        // base64로 인코딩된 폰트 파일 로드 (백엔드 서버에서 제공)
+        const fontUrl = getFontUrl();
+        logger.debug("폰트 파일 URL:", fontUrl);
+        const fontResponse = await fetch(fontUrl);
         if (!fontResponse.ok) {
           throw new Error(`HTTP ${fontResponse.status}`);
         }

@@ -29,3 +29,15 @@ if (import.meta.env.PROD && typeof window !== "undefined") {
  */
 export const isDevelopment = import.meta.env.DEV;
 export const isProduction = import.meta.env.PROD;
+
+/**
+ * NanumGothic 폰트 파일 URL
+ * 백엔드 서버에서 제공하는 폰트 파일을 사용
+ */
+export const getFontUrl = (): string => {
+  // API_BASE_URL에서 /api를 제거하고 루트 경로로 변경
+  // 예: "http://localhost:8080/api" -> "http://localhost:8080"
+  // 예: "/api" -> "" (같은 도메인)
+  const baseUrl = API_BASE_URL.replace(/\/api\/?$/, "");
+  return `${baseUrl}/NanumGothic-normal.js`;
+};

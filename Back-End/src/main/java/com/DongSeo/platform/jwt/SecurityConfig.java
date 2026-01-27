@@ -37,6 +37,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**", "/error").permitAll()
                         .requestMatchers("/api/estimates/**", "/api/products/**", "/api/categories/**", "/api/subcategories/**", "/api/options/**", "/api/variants/**", "/api/colors/**").permitAll()
                         .requestMatchers("/api/admin/**").hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers("/NanumGothic-normal.js").permitAll() // 폰트 파일 정적 리소스 허용
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(new JwtFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class);

@@ -22,6 +22,9 @@ import java.util.Arrays;
 public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
+    
+    @Value("${cors.allowed-origins:}")
+    private String allowedOrigins;
 
 
     @Bean
@@ -49,8 +52,7 @@ public class SecurityConfig {
 
     // CORS 설정
     @Bean
-    public CorsConfigurationSource corsConfigurationSource(
-            @Value("${cors.allowed-origins:}") String allowedOrigins) {
+    public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
         // 환경 변수에 도메인이 있으면 사용, 없으면 모든 도메인 허용

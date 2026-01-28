@@ -12,12 +12,18 @@ import com.DongSeo.platform.repository.OptionRepository;
 import com.DongSeo.platform.repository.ProductRepository;
 import com.DongSeo.platform.repository.ProductVariantRepository;
 import com.DongSeo.platform.service.EstimationService;
+import com.DongSeo.platform.service.EstimatePdfService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -33,6 +39,7 @@ import java.util.stream.Collectors;
 public class EstimateController {
 
     private final EstimationService estimateService;
+    private final EstimatePdfService estimatePdfService;
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
     private final OptionRepository optionRepository;
@@ -67,6 +74,29 @@ public class EstimateController {
     @GetMapping("/estimates/ping")
     public ResponseEntity<String> ping() {
         return ResponseEntity.ok("Chenu Estimate System is Running!");
+    }
+
+    /**
+     * 견적서 PDF export (서버 생성)
+     * EC2 등 서버에 한글 폰트 설치 후 절대경로 사용. UTF-8 설정만으로는 해결 안 됨.
+     *
+     * @param request 견적서 데이터 (장바구니 + 총액)
+     * @return application/pdf
+     */
+    @PostMapping("/estimates/export-pdf")
+    public ResponseEntity<byte[]> exportPdf(@RequestBody EstimatePdfRequest request) {
+        try {
+            byte[] pdf = estimatePdfService.generatePdf(request);
+            String filename = "견적서_" + LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE) + ".pdf";
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("attachment", filename);
+            headers.setContentLength(pdf.length);
+            return ResponseEntity.ok().headers(headers).body(pdf);
+        } catch (IOException e) {
+            log.error("PDF 생성 실패", e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     /**

@@ -32,6 +32,8 @@ import {
   fetchVariants,
   fetchColors,
   calculateEstimate,
+  exportEstimatePdf,
+  type EstimatePdfRequest,
   type Category,
   type Product,
   type Option,
@@ -493,15 +495,79 @@ export function CalculatorTab() {
     return text;
   };
 
-  // PDF 생성 함수 (jsPDF만 사용, 한글 지원)
+  // PDF 생성: 서버 export-pdf 우선 (EC2 한글 폰트), 실패 시 클라이언트 jsPDF 폴백
   const generatePDF = async () => {
     if (cart.length === 0) {
       toast.error("장바구니가 비어있습니다.");
       return;
     }
 
+    const dateStr = new Date().toLocaleDateString("ko-KR", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+    const baseTotal = cart.reduce((sum, item) => {
+      const base = item.finalPrice ? item.finalPrice - (item.marginAmount || 0) : item.totalPrice;
+      return sum + base;
+    }, 0);
+    const totalMargin = cart.reduce((sum, item) => sum + (item.marginAmount || 0), 0);
+    const totalPrice = calculateCartTotal();
+    const marginPercent = cart.find((i) => i.margin)?.margin ?? "0";
+
+    const pdfRequest: EstimatePdfRequest = {
+      companyName: "쉐누 (CHENOUS)",
+      dateStr,
+      items: cart.map((item) => {
+        const base = item.finalPrice ? item.finalPrice - (item.marginAmount || 0) : item.totalPrice;
+        const colorCost = item.colorCostInfo
+          ? `(${item.colorCostInfo.colorName}) (${Math.round((item.colorCostInfo.costRate ?? 0) * 100)}% 인상)`
+          : undefined;
+        return {
+          productName: item.productName,
+          categoryName: item.categoryName,
+          subCategoryName: item.subCategoryName,
+          specName: item.specName,
+          typeName: item.typeName,
+          width: item.width,
+          height: item.height,
+          selectedColorName: item.selectedColorName,
+          selectedColorCode: item.selectedColorCode,
+          unitPrice: item.unitPrice,
+          priceIncreaseReason: item.priceIncreaseInfo?.reason,
+          colorCostInfo: colorCost,
+          optionPrice: item.optionPrice ?? 0,
+          selectedOptions: item.selectedOptions ?? [],
+          quantity: item.quantity,
+          baseTotal: base,
+          margin: item.margin,
+          marginAmount: item.marginAmount ?? 0,
+          finalTotal: item.finalPrice ?? item.totalPrice,
+        };
+      }),
+      baseTotal,
+      totalMargin,
+      marginPercent,
+      totalPrice,
+    };
+
     try {
-      // jsPDF 동적 import
+      const blob = await exportEstimatePdf(pdfRequest);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `견적서_${new Date().toISOString().split("T")[0]}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("PDF 파일이 다운로드되었습니다.");
+      return;
+    } catch (e) {
+      logger.warn("서버 PDF 생성 실패, 클라이언트 jsPDF 폴백:", e);
+      toast.info("서버 PDF 생성에 실패해 브라우저에서 생성합니다.");
+    }
+
+    try {
+      // jsPDF 동적 import (폴백)
       const { jsPDF } = await import("jspdf");
       
       const doc = new jsPDF("p", "mm", "a4");

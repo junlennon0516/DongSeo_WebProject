@@ -241,3 +241,53 @@ export async function calculateEstimate(request: EstimateRequest): Promise<Estim
   return response.json();
 }
 
+/** 견적서 PDF export 요청 (서버 생성, EC2 한글 폰트 사용) */
+export interface EstimatePdfItemDto {
+  productName?: string;
+  categoryName?: string;
+  subCategoryName?: string;
+  specName?: string;
+  typeName?: string;
+  width?: string;
+  height?: string;
+  selectedColorName?: string;
+  selectedColorCode?: string;
+  unitPrice: number;
+  priceIncreaseReason?: string;
+  colorCostInfo?: string;
+  optionPrice: number;
+  selectedOptions?: string[];
+  quantity: number;
+  baseTotal: number;
+  margin?: string;
+  marginAmount: number;
+  finalTotal: number;
+}
+
+export interface EstimatePdfRequest {
+  companyName?: string;
+  dateStr?: string;
+  items: EstimatePdfItemDto[];
+  baseTotal: number;
+  totalMargin: number;
+  marginPercent?: string;
+  totalPrice: number;
+}
+
+/**
+ * 견적서 PDF 서버 생성 후 Blob 반환
+ * EC2에 한글 폰트 설치 후 절대경로 사용. 인코딩만으로는 해결 안 됨.
+ */
+export async function exportEstimatePdf(request: EstimatePdfRequest): Promise<Blob> {
+  const response = await fetch(`${API_BASE_URL}/estimates/export-pdf`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify(request),
+  });
+  if (!response.ok) {
+    const t = await response.text();
+    throw new Error(t || `PDF 생성 실패 (${response.status})`);
+  }
+  return response.blob();
+}
+

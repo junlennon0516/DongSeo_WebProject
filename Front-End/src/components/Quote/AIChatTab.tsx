@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../ui/card';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
@@ -21,7 +21,6 @@ export function AIChatTab() {
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
   
   // 예상 견적 및 장바구니 (CalculatorTab과 동일한 구조)
   const [result, setResult] = useState<ExtendedEstimateResponse | null>(null);
@@ -29,13 +28,19 @@ export function AIChatTab() {
 
   // 메시지 추가 시 스크롤
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
-      }
+    // ScrollArea의 viewport를 직접 찾아서 스크롤
+    const scrollContainer = document.querySelector('[data-slot="scroll-area-viewport"]');
+    if (scrollContainer) {
+      scrollContainer.scrollTop = scrollContainer.scrollHeight;
     }
   }, [messages]);
+
+  // 견적 관련 키워드 감지
+  const isEstimateQuery = (text: string): boolean => {
+    const estimateKeywords = ['견적', '가격', '비용', '얼마', '돈', '원', '개', '필요', '주문', '시공'];
+    const lowerText = text.toLowerCase();
+    return estimateKeywords.some(keyword => lowerText.includes(keyword));
+  };
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
@@ -46,19 +51,97 @@ export function AIChatTab() {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = inputMessage.trim();
     setInputMessage('');
     setIsLoading(true);
 
-    // TODO: OpenAI 또는 Gemini API 호출
-    // 현재는 시뮬레이션 응답
-    setTimeout(() => {
+    try {
+      const aiApiBaseUrl = import.meta.env.DEV 
+        ? 'http://localhost:8000'
+        : '/ai-api';
+
+      // 견적 질문인 경우 /analyze 엔드포인트도 함께 호출
+      const isEstimate = isEstimateQuery(currentInput);
+      let estimateData = null;
+
+      if (isEstimate) {
+        try {
+          const analyzeResponse = await fetch(`${aiApiBaseUrl}/analyze`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              text: currentInput,
+            }),
+          });
+
+          if (analyzeResponse.ok) {
+            estimateData = await analyzeResponse.json();
+          }
+        } catch (err) {
+          console.warn('견적 분석 실패 (채팅은 계속 진행):', err);
+        }
+      }
+
+      // 채팅 API 호출
+      const chatResponse = await fetch(`${aiApiBaseUrl}/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [...messages, userMessage],
+          model: 'gemini-2.5-flash-lite',
+          temperature: 0.7,
+          estimateData: estimateData, // 견적 데이터를 프롬프트에 포함
+        }),
+      });
+
+      if (!chatResponse.ok) {
+        throw new Error(`AI 서버 오류: ${chatResponse.status}`);
+      }
+
+      const chatData = await chatResponse.json();
+      
+      // AI-Server에서 이미 가격 정보가 포함된 응답을 받음
+      let responseContent = chatData.content || '죄송합니다. 응답을 생성할 수 없습니다.';
+      
+      // 견적 데이터가 있으면 첫 번째 항목을 result에 설정 (UI에 표시)
+      if (estimateData && estimateData.items && estimateData.items.length > 0) {
+        const firstItem = estimateData.items[0];
+        setResult({
+          productName: firstItem.product_name,
+          categoryName: '',
+          subCategoryName: '',
+          unitPrice: firstItem.unit_price || 0,
+          optionPrice: 0,
+          quantity: firstItem.quantity,
+          totalPrice: firstItem.total_price,
+          finalPrice: firstItem.total_price,
+          margin: 0,
+          marginAmount: 0,
+          selectedOptions: [],
+        });
+      }
+      
       const assistantMessage: Message = {
         role: 'assistant',
-        content: 'AI 상담 기능은 현재 개발 중입니다. OpenAI API 또는 Gemini API를 연동하면 실제 상담이 가능합니다. 제품 견적은 왼쪽의 "도어/문틀 견적" 또는 "목재 자재" 탭을 이용해주세요.'
+        content: responseContent
       };
+
       setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('AI 채팅 오류:', error);
+      
+      const errorMessage: Message = {
+        role: 'assistant',
+        content: '죄송합니다. 현재 AI 상담 서비스를 이용할 수 없습니다. 잠시 후 다시 시도해주시거나, 일반 견적 문의 탭을 이용해주세요.'
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -117,7 +200,7 @@ export function AIChatTab() {
           </span>
         </h3>
         
-        <ScrollArea className="h-[500px] mb-4 pr-4" ref={scrollAreaRef}>
+        <ScrollArea className="h-[500px] mb-4 pr-4">
           <div className="space-y-4">
             {messages.map((message, index) => (
               <div
@@ -174,8 +257,8 @@ export function AIChatTab() {
 
         <div className="mt-4 p-4 bg-indigo-50 rounded-xl border border-indigo-200">
           <p className="text-sm text-indigo-800">
-            <strong>안내:</strong> AI 상담 기능은 OpenAI API 또는 Gemini API 연동 후 사용 가능합니다. 
-            현재는 시뮬레이션 모드입니다.
+            <strong>안내:</strong> AI 상담 기능은 Google Gemini API를 사용하여 실시간으로 견적 상담을 제공합니다. 
+            도어, 문틀, 목재 자재에 대한 질문을 자유롭게 해주세요.
           </p>
         </div>
       </Card>

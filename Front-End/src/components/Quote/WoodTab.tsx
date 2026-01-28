@@ -334,12 +334,12 @@ export function WoodTab() {
       // 제목
       doc.setFontSize(24);
       doc.text("견적서 (목재 자재)", 105, yPosition, { align: "center" });
-      yPosition += 12;
+      yPosition += 15;
 
       // 회사 정보
       doc.setFontSize(14);
       doc.text("쉐누 (CHENOUS)", margin, yPosition);
-      yPosition += 6;
+      yPosition += 8;
       
       doc.setFontSize(10);
       const dateStr = new Date().toLocaleDateString("ko-KR", {
@@ -348,18 +348,18 @@ export function WoodTab() {
         day: "numeric"
       });
       doc.text(`작성일: ${dateStr}`, margin, yPosition);
-      yPosition += 10;
+      yPosition += 12;
 
       // 구분선
       doc.setDrawColor(200, 200, 200);
       doc.line(margin, yPosition, 190, yPosition);
-      yPosition += 10;
+      yPosition += 12;
 
       // 견적 내역
       doc.setFontSize(12);
       if (fontLoaded) doc.setFont("NanumGothic", "normal");
       doc.text("견적 내역", margin, yPosition);
-      yPosition += 10;
+      yPosition += 12;
 
       doc.setFontSize(10);
       if (fontLoaded) doc.setFont("NanumGothic", "normal");
@@ -376,7 +376,7 @@ export function WoodTab() {
         const productName = `${index + 1}. ${item.name}`;
         const splitProductName = doc.splitTextToSize(productName, 170);
         doc.text(splitProductName, margin, yPosition);
-        yPosition += splitProductName.length * 5;
+        yPosition += splitProductName.length * 6 + 2;
 
         // 카테고리 정보
         if (item.category) {
@@ -386,29 +386,29 @@ export function WoodTab() {
             ? `${item.category} > ${item.subCategory}`
             : item.category;
           doc.text(`카테고리: ${categoryText}`, margin + 5, yPosition);
-          yPosition += 5;
+          yPosition += 6;
         }
 
         // 상세 정보
         doc.setFontSize(9);
         if (fontLoaded) doc.setFont("NanumGothic", "normal");
         doc.text(`단가: ${item.unitPrice.toLocaleString()}원`, margin + 5, yPosition);
-        yPosition += 5;
+        yPosition += 6;
         doc.text(`수량: ${item.quantity}개`, margin + 5, yPosition);
-        yPosition += 5;
+        yPosition += 7;
 
         // 소계 (마진 적용 전)
         const baseTotal = item.finalPrice ? (item.finalPrice - (item.marginAmount || 0)) : item.totalPrice;
         doc.setFont("NanumGothic", "normal");
         doc.text(`소계 (마진 적용 전): ${baseTotal.toLocaleString()}원`, margin + 5, yPosition);
-        yPosition += 5;
+        yPosition += 6;
 
         // 마진 정보
         if (item.margin && item.marginAmount) {
           doc.setFontSize(9);
           if (fontLoaded) doc.setFont("NanumGothic", "normal");
           doc.text(`회사 마진 (${item.margin}%): +${item.marginAmount.toLocaleString()}원`, margin + 5, yPosition);
-          yPosition += 5;
+          yPosition += 6;
         }
 
         // 최종 소계
@@ -417,12 +417,12 @@ export function WoodTab() {
         if (fontLoaded) doc.setFont("NanumGothic", "normal");
         doc.setDrawColor(0, 0, 0);
         doc.text(`최종 소계: ${finalTotal.toLocaleString()}원`, margin + 5, yPosition);
-        yPosition += 8;
+        yPosition += 10;
 
         // 구분선
         doc.setDrawColor(200, 200, 200);
         doc.line(margin, yPosition, 190, yPosition);
-        yPosition += 5;
+        yPosition += 8;
       });
 
       // 총합
@@ -435,7 +435,7 @@ export function WoodTab() {
       if (fontLoaded) doc.setFont("NanumGothic", "normal");
       doc.setDrawColor(0, 0, 0);
       doc.line(margin, yPosition, 190, yPosition);
-      yPosition += 8;
+      yPosition += 10;
 
       const totalPrice = calculateCartTotal();
       
@@ -451,26 +451,26 @@ export function WoodTab() {
       doc.setFontSize(11);
       if (fontLoaded) doc.setFont("NanumGothic", "normal");
       doc.text(`총액 (마진 적용 전): ${baseTotal.toLocaleString()}원`, margin, yPosition);
-      yPosition += 6;
+      yPosition += 7;
       
       if (totalMargin > 0) {
         const marginPercent = cart.find(item => item.margin)?.margin || "0";
         doc.setFontSize(10);
         if (fontLoaded) doc.setFont("NanumGothic", "normal");
         doc.text(`회사 마진 (${marginPercent}%): +${totalMargin.toLocaleString()}원`, margin, yPosition);
-        yPosition += 6;
+        yPosition += 7;
       }
       
       doc.setFontSize(14);
       if (fontLoaded) doc.setFont("NanumGothic", "normal");
       doc.setDrawColor(0, 0, 0);
       doc.text(`총 예상 금액: ${totalPrice.toLocaleString()}원`, margin, yPosition);
-      yPosition += 8;
+      yPosition += 10;
 
       doc.setFontSize(9);
       if (fontLoaded) doc.setFont("NanumGothic", "normal");
       doc.text("* VAT 별도", margin, yPosition);
-      yPosition += 5;
+      yPosition += 6;
       const noteText = "* 본 견적서는 참고용이며, 실제 견적은 현장 확인 후 결정됩니다.";
       const splitNote = doc.splitTextToSize(noteText, 170);
       doc.text(splitNote, margin, yPosition);

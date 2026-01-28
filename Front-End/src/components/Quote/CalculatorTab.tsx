@@ -643,12 +643,12 @@ export function CalculatorTab() {
       // 제목
       doc.setFontSize(24);
       doc.text("견적서", 105, yPosition, { align: "center" });
-      yPosition += 12;
+      yPosition += 15;
 
       // 회사 정보
       doc.setFontSize(14);
       doc.text("쉐누 (CHENOUS)", margin, yPosition);
-      yPosition += 6;
+      yPosition += 8;
       
       doc.setFontSize(10);
       const dateStr = new Date().toLocaleDateString("ko-KR", {
@@ -657,18 +657,18 @@ export function CalculatorTab() {
         day: "numeric"
       });
       doc.text(`작성일: ${dateStr}`, margin, yPosition);
-      yPosition += 10;
+      yPosition += 12;
 
       // 구분선
       doc.setDrawColor(200, 200, 200);
       doc.line(margin, yPosition, 190, yPosition);
-      yPosition += 10;
+      yPosition += 12;
 
       // 장바구니 항목들
       doc.setFontSize(12);
       doc.setFont("NanumGothic", "normal");
       doc.text("견적 내역", margin, yPosition);
-      yPosition += 10;
+      yPosition += 12;
 
       doc.setFontSize(10);
       doc.setFont("NanumGothic", "normal");
@@ -694,7 +694,7 @@ export function CalculatorTab() {
         // 긴 제품명은 여러 줄로 분할
         const splitProductName = doc.splitTextToSize(productName, 170);
         doc.text(splitProductName, margin, yPosition);
-        yPosition += splitProductName.length * 5;
+        yPosition += splitProductName.length * 6 + 2;
 
         // 카테고리 정보
         if (item.categoryName) {
@@ -706,7 +706,7 @@ export function CalculatorTab() {
             ? `${normalizedCategoryName} > ${normalizedSubCategoryName}`
             : normalizedCategoryName;
           doc.text(`카테고리: ${categoryText}`, margin + 5, yPosition);
-          yPosition += 5;
+          yPosition += 6;
         }
 
         // 규격 및 타입 정보
@@ -718,7 +718,7 @@ export function CalculatorTab() {
           const specTypeText = [normalizedSpecName, normalizedTypeName].filter(Boolean).join(" / ");
           if (specTypeText) {
             doc.text(`규격/타입: ${specTypeText}`, margin + 5, yPosition);
-            yPosition += 5;
+            yPosition += 6;
           }
         }
 
@@ -731,7 +731,7 @@ export function CalculatorTab() {
             .join(", ");
           if (sizeText) {
             doc.text(`사이즈: ${sizeText}`, margin + 5, yPosition);
-            yPosition += 5;
+            yPosition += 6;
           }
         }
 
@@ -745,14 +745,14 @@ export function CalculatorTab() {
             ? `${normalizedColorName} (${normalizedColorCode})`
             : normalizedColorName;
           doc.text(`색상: ${colorText}`, margin + 5, yPosition);
-          yPosition += 5;
+          yPosition += 6;
         }
 
         // 상세 정보
         doc.setFontSize(9);
         doc.setFont("NanumGothic", "normal");
         doc.text(`기본 단가: ${item.unitPrice.toLocaleString()}원`, margin + 5, yPosition);
-        yPosition += 5;
+        yPosition += 6;
 
         // 사이즈로 인한 가격 인상 정보
         if (item.priceIncreaseInfo) {
@@ -760,7 +760,7 @@ export function CalculatorTab() {
           doc.setFont("NanumGothic", "normal");
           const increaseText = `${item.priceIncreaseInfo.reason}`;
           doc.text(increaseText, margin + 5, yPosition);
-          yPosition += 5;
+          yPosition += 6;
         }
 
         // 색상 추가 비용 정보
@@ -769,7 +769,7 @@ export function CalculatorTab() {
           doc.setFont("NanumGothic", "normal");
           const colorCostText = `색상 추가 비용 (${item.colorCostInfo.colorName}) (${Math.round(item.colorCostInfo.costRate * 100)}% 인상)`;
           doc.text(colorCostText, margin + 5, yPosition);
-          yPosition += 5;
+          yPosition += 6;
         }
 
         if (item.optionPrice !== 0) {
@@ -780,7 +780,7 @@ export function CalculatorTab() {
             margin + 5,
             yPosition
           );
-          yPosition += 5;
+          yPosition += 6;
         }
 
         // 선택된 옵션 상세 정보
@@ -791,26 +791,26 @@ export function CalculatorTab() {
           const optionsText = `선택 옵션: ${normalizedOptions.join(", ")}`;
           const splitOptions = doc.splitTextToSize(optionsText, 170);
           doc.text(splitOptions, margin + 5, yPosition);
-          yPosition += splitOptions.length * 4;
+          yPosition += splitOptions.length * 5;
         }
 
         doc.setFontSize(9);
         doc.setFont("NanumGothic", "normal");
         doc.text(`수량: ${item.quantity}개`, margin + 5, yPosition);
-        yPosition += 5;
+        yPosition += 7;
 
         // 소계 (마진 적용 전)
         const baseTotal = item.finalPrice ? (item.finalPrice - (item.marginAmount || 0)) : item.totalPrice;
         doc.setFont("NanumGothic", "normal");
         doc.text(`소계 (마진 적용 전): ${baseTotal.toLocaleString()}원`, margin + 5, yPosition);
-        yPosition += 5;
+        yPosition += 6;
 
         // 마진 정보
         if (item.margin && item.marginAmount) {
           doc.setFontSize(9);
           doc.setFont("NanumGothic", "normal");
           doc.text(`회사 마진 (${item.margin}%): +${item.marginAmount.toLocaleString()}원`, margin + 5, yPosition);
-          yPosition += 5;
+          yPosition += 6;
         }
 
         // 최종 소계 (마진 적용 후)
@@ -819,12 +819,12 @@ export function CalculatorTab() {
         doc.setFont("NanumGothic", "normal"); // bold 대신 normal 사용 (한글 깨짐 방지)
         doc.setDrawColor(0, 0, 0); // 검은색으로 강조
         doc.text(`최종 소계: ${finalTotal.toLocaleString()}원`, margin + 5, yPosition);
-        yPosition += 8;
+        yPosition += 10;
 
         // 구분선
         doc.setDrawColor(200, 200, 200);
         doc.line(margin, yPosition, 190, yPosition);
-        yPosition += 5;
+        yPosition += 8;
       });
 
       // 총합
@@ -837,7 +837,7 @@ export function CalculatorTab() {
       doc.setFont("NanumGothic", "normal");
       doc.setDrawColor(0, 0, 0);
       doc.line(margin, yPosition, 190, yPosition);
-      yPosition += 8;
+      yPosition += 10;
 
       const totalPrice = calculateCartTotal();
       
@@ -853,26 +853,26 @@ export function CalculatorTab() {
       doc.setFontSize(11);
       doc.setFont("NanumGothic", "normal");
       doc.text(`총액 (마진 적용 전): ${baseTotal.toLocaleString()}원`, margin, yPosition);
-      yPosition += 6;
+      yPosition += 7;
       
       if (totalMargin > 0) {
         const marginPercent = cart.find(item => item.margin)?.margin || "0";
         doc.setFontSize(10);
         doc.setFont("NanumGothic", "normal");
         doc.text(`회사 마진 (${marginPercent}%): +${totalMargin.toLocaleString()}원`, margin, yPosition);
-        yPosition += 6;
+        yPosition += 7;
       }
       
       doc.setFontSize(14);
       doc.setFont("NanumGothic", "normal"); // bold 대신 normal 사용 (한글 깨짐 방지)
       doc.setDrawColor(0, 0, 0); // 검은색으로 강조
       doc.text(`총 예상 금액: ${totalPrice.toLocaleString()}원`, margin, yPosition);
-      yPosition += 8;
+      yPosition += 10;
 
       doc.setFontSize(9);
       doc.setFont("NanumGothic", "normal");
       doc.text("* VAT 별도", margin, yPosition);
-      yPosition += 5;
+      yPosition += 6;
       const noteText = "* 본 견적서는 참고용이며, 실제 견적은 현장 확인 후 결정됩니다.";
       const splitNote = doc.splitTextToSize(noteText, 170);
       doc.text(splitNote, margin, yPosition);

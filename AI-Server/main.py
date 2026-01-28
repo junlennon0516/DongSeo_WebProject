@@ -7,9 +7,25 @@ import json
 import os
 import pymysql
 from pymysql.cursors import DictCursor
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 # .env 파일 로드 (ex.py 방식 참고)
 load_dotenv(Path(__file__).resolve().parent / ".env")
+
+# ==========================================
+# FastAPI 앱 초기화
+# ==========================================
+app = FastAPI(title="AI Server", description="동서인테리어 AI 상담 서버")
+
+# CORS 설정 (프론트엔드에서 접근 가능하도록)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 프로덕션에서는 특정 도메인만 허용하도록 수정 권장
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ==========================================
 # 1. 출력 데이터 구조 정의 (Pydantic)
@@ -27,6 +43,26 @@ class OrderItem(BaseModel):
 class OrderList(BaseModel):
     items: List[OrderItem]
     total_amount: int = Field(description="Total amount of all items", default=0)
+
+# ==========================================
+# API 요청/응답 모델
+# ==========================================
+class AnalyzeRequest(BaseModel):
+    text: str = Field(description="사용자의 자연어 요청")
+
+class ChatMessage(BaseModel):
+    role: str = Field(description="메시지 역할: 'user' 또는 'assistant'")
+    content: str = Field(description="메시지 내용")
+
+class ChatRequest(BaseModel):
+    messages: List[ChatMessage] = Field(description="대화 히스토리")
+    model: Optional[str] = Field(default="gemini-2.5-flash-lite", description="사용할 모델명")
+    temperature: Optional[float] = Field(default=0.7, description="창의성 수준 (0.0 ~ 1.0)")
+    estimateData: Optional[dict] = Field(default=None, description="견적 분석 결과 데이터 (있는 경우)")
+
+class ChatResponse(BaseModel):
+    role: str = Field(default="assistant")
+    content: str = Field(description="AI 응답 내용")
 
 # ==========================================
 # 2. DB 연결 설정
@@ -345,15 +381,147 @@ def process_user_query(
     return result.model_dump()
 
 # ==========================================
-# 테스트
+# 채팅용 프롬프트 생성 함수
+# ==========================================
+def build_chat_system_prompt(estimate_data: Optional[dict] = None) -> str:
+    """
+    채팅 상담용 시스템 프롬프트
+    
+    Args:
+        estimate_data: 견적 분석 결과 데이터 (있는 경우)
+    """
+    base_prompt = """당신은 동서인테리어의 전문 상담사입니다. 창호, 도어, 중문 시공에 대한 견적 상담을 제공합니다.
+
+친절하고 전문적으로 답변하며, 고객의 요구사항을 정확히 파악하여 적절한 견적을 제시하세요.
+구체적인 견적이 필요하면 제품명, 규격(가로x세로), 수량을 명확히 안내해주세요.
+
+중요한 원칙:
+1. 항상 정확한 가격 정보를 제공하세요.
+2. 견적 데이터가 제공되면 반드시 그 정보를 활용하여 답변하세요.
+3. 가격은 원화(원) 단위로 표시하고, 천 단위 구분 기호(쉼표)를 사용하세요.
+4. 총 견적 금액을 명확히 제시하세요."""
+    
+    if estimate_data and estimate_data.get("items"):
+        items = estimate_data["items"]
+        total_amount = estimate_data.get("total_amount", 0)
+        
+        estimate_info = "\n\n[현재 분석된 견적 정보]\n"
+        for item in items:
+            product_name = item.get("product_name", "제품")
+            width = item.get("width", 0)
+            height = item.get("height", 0)
+            quantity = item.get("quantity", 1)
+            unit_price = item.get("unit_price", 0)
+            total_price = item.get("total_price", 0)
+            
+            size_info = f"{width} x {height}mm" if width and height else "기본 규격"
+            estimate_info += f"- {product_name} ({size_info}) × {quantity}개\n"
+            estimate_info += f"  단가: {unit_price:,}원, 소계: {total_price:,}원\n"
+        
+        estimate_info += f"\n총 견적 금액: {total_amount:,}원\n"
+        estimate_info += "\n위 견적 정보를 바탕으로 고객에게 친절하고 상세하게 설명해주세요."
+        
+        return base_prompt + estimate_info
+    
+    return base_prompt
+
+def call_chat_llm(messages: List[dict], model: str = "gemini-2.5-flash-lite", temperature: float = 0.7, estimate_data: Optional[dict] = None) -> str:
+    """
+    채팅용 LLM 호출 함수
+    
+    Args:
+        messages: 대화 히스토리 (role, content 포함)
+        model: 사용할 모델명
+        temperature: 창의성 수준
+        estimate_data: 견적 분석 결과 데이터 (있는 경우)
+    
+    Returns:
+        LLM 응답 텍스트
+    """
+    try:
+        # 시스템 프롬프트 생성 (견적 데이터 포함)
+        system_prompt = build_chat_system_prompt(estimate_data)
+        
+        # 시스템 프롬프트를 첫 번째 메시지로 추가
+        formatted_messages = [
+            {"role": "user", "parts": [{"text": system_prompt}]}
+        ]
+        
+        # 사용자 메시지들을 추가
+        for msg in messages:
+            if msg["role"] == "user":
+                formatted_messages.append({
+                    "role": "user",
+                    "parts": [{"text": msg["content"]}]
+                })
+            elif msg["role"] == "assistant":
+                formatted_messages.append({
+                    "role": "model",
+                    "parts": [{"text": msg["content"]}]
+                })
+        
+        response = client.models.generate_content(
+            model=model,
+            contents=formatted_messages,
+            config={
+                "temperature": temperature,
+            }
+        )
+        return response.text
+    except Exception as e:
+        raise Exception(f"LLM 호출 실패: {str(e)}")
+
+# ==========================================
+# FastAPI 엔드포인트
+# ==========================================
+@app.get("/")
+async def root():
+    """헬스 체크 엔드포인트"""
+    return {"status": "ok", "message": "AI Server is running"}
+
+@app.post("/analyze", response_model=dict)
+async def analyze_estimate(request: AnalyzeRequest):
+    """
+    사용자의 자연어 요청을 분석하여 견적 정보를 추출합니다.
+    """
+    try:
+        result = process_user_query(request.text)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"견적 분석 실패: {str(e)}")
+
+@app.post("/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest):
+    """
+    AI 채팅 상담 엔드포인트
+    대화 히스토리를 받아서 AI 응답을 생성합니다.
+    견적 데이터가 제공되면 가격 정보를 포함하여 답변합니다.
+    """
+    try:
+        # 메시지 리스트를 딕셔너리 형태로 변환
+        messages_dict = [
+            {"role": msg.role, "content": msg.content}
+            for msg in request.messages
+        ]
+        
+        # LLM 호출 (견적 데이터 포함)
+        response_text = call_chat_llm(
+            messages_dict,
+            model=request.model,
+            temperature=request.temperature,
+            estimate_data=request.estimateData
+        )
+        
+        return ChatResponse(
+            role="assistant",
+            content=response_text
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"채팅 처리 실패: {str(e)}")
+
+# ==========================================
+# 테스트 (로컬 실행용)
 # ==========================================
 if __name__ == "__main__":
-    text = "ABS 민자 도어 900에 2100으로 5개랑, 문틀 110바 3개 필요해. 견적이 얼마일까?"
-    try:
-        result = process_user_query(text)
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        print(f"\n총 견적 금액: {result['total_amount']:,}원")
-    except Exception as e:
-        print(f"에러 발생: {e}")
-        import traceback
-        traceback.print_exc()
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

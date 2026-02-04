@@ -3,10 +3,12 @@ package com.DongSeo.platform.domain;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "product_variants")
 @Getter
+@Setter
 @NoArgsConstructor
 public class ProductVariant {
 

@@ -17,24 +17,14 @@ import {
   fetchCategories,
   fetchSubCategories,
   fetchProducts,
+  searchProductsForEstimate,
   type Category,
   type Product,
+  type ProductSearchItem,
 } from "../../api/estimateApi";
 import { COMPANY_ID } from "../../constants/calculator";
-import { getFontUrl } from "../../config/api";
-
-interface WoodProduct {
-  id: string;
-  name: string;
-  category: string;
-  subCategory: string;
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
-  margin?: string;
-  marginAmount?: number;
-  finalPrice?: number;
-}
+import type { WoodProduct } from "../../types/calculator";
+import { useCart } from "../../contexts/CartContext";
 
 interface WoodEstimate {
   productName: string;
@@ -61,8 +51,13 @@ export function WoodTab() {
   const [margin, setMargin] = useState<string>("");
   
   const [result, setResult] = useState<WoodEstimate | null>(null);
-  const [cart, setCart] = useState<WoodProduct[]>([]);
+  const { cart, addWoodItem, removeCartItem, updateWoodItemQuantity, clearCart, getCartTotal, generatePDF } = useCart();
   const [isLoading, setIsLoading] = useState(false);
+
+  // 목재 제품 검색 (상단 검색)
+  const [woodSearchKeyword, setWoodSearchKeyword] = useState("");
+  const [woodSearchResults, setWoodSearchResults] = useState<ProductSearchItem[]>([]);
+  const [woodSearchLoading, setWoodSearchLoading] = useState(false);
 
   // 초기 데이터 로드
   useEffect(() => {
@@ -158,6 +153,36 @@ export function WoodTab() {
     }
   };
 
+  const handleWoodProductSearch = async () => {
+    setWoodSearchLoading(true);
+    try {
+      const list = await searchProductsForEstimate({
+        keyword: woodSearchKeyword.trim() || undefined,
+        companyId: COMPANY_ID,
+      });
+      const woodOnly = list.filter(
+        (item) =>
+          item.categoryCode?.startsWith("WOOD_") && !item.categoryCode?.includes("DOOR")
+      );
+      setWoodSearchResults(woodOnly);
+    } catch (e: any) {
+      toast.error(e.message || "검색 실패");
+      setWoodSearchResults([]);
+    } finally {
+      setWoodSearchLoading(false);
+    }
+  };
+
+  const handleWoodSearchResultClick = (item: ProductSearchItem) => {
+    const mainId = item.parentCategoryId ?? item.categoryId;
+    const subId = item.parentCategoryId != null ? item.categoryId : null;
+    setSelectedCategory(mainId.toString());
+    setSelectedSubCategory(subId != null ? subId.toString() : "");
+    setSelectedProduct(item.productId.toString());
+    setWoodSearchResults([]);
+    setWoodSearchKeyword("");
+  };
+
   const handleCalculate = () => {
     if (!selectedProduct) {
       toast.error("제품을 선택해주세요.");
@@ -222,268 +247,15 @@ export function WoodTab() {
       finalPrice: result.finalPrice,
     };
 
-    setCart((prev) => [...prev, cartItem]);
-    toast.success("장바구니에 추가되었습니다.");
-    
+    addWoodItem(cartItem);
+
     // 계산 폼 초기화 (마진은 유지)
     setResult(null);
     setSelectedProduct("");
     setQuantity(1);
   };
 
-  const removeFromCart = (id: string) => {
-    setCart((prev) => prev.filter((item) => item.id !== id));
-    toast.success("장바구니에서 제거되었습니다.");
-  };
-
-  const updateQuantity = (id: string, quantity: number) => {
-    if (quantity < 1) return;
-    setCart((prev) =>
-      prev.map((item) => {
-        if (item.id === id) {
-          const baseTotal = item.unitPrice * quantity;
-          let finalPrice = baseTotal;
-          let marginAmount = 0;
-          
-          // 마진이 있으면 재계산
-          if (item.margin) {
-            const marginRate = parseFloat(item.margin) / 100;
-            if (!isNaN(marginRate) && marginRate >= 0) {
-              marginAmount = Math.round(baseTotal * marginRate);
-              finalPrice = baseTotal + marginAmount;
-            }
-          }
-          
-          return {
-            ...item,
-            quantity,
-            totalPrice: baseTotal,
-            marginAmount: marginAmount > 0 ? marginAmount : undefined,
-            finalPrice,
-          };
-        }
-        return item;
-      })
-    );
-  };
-
-  const calculateCartTotal = (): number => {
-    return cart.reduce((total, item) => total + (item.finalPrice || item.totalPrice || 0), 0);
-  };
-
-  // PDF 생성 함수
-  const generatePDF = async () => {
-    if (cart.length === 0) {
-      toast.error("장바구니가 비어있습니다.");
-      return;
-    }
-
-    try {
-      const { jsPDF } = await import("jspdf");
-      const doc = new jsPDF("p", "mm", "a4");
-
-      // 한글 폰트 로드 (백엔드 서버에서 제공)
-      let fontLoaded = false;
-      try {
-        const fontUrl = getFontUrl();
-        logger.debug("폰트 파일 URL:", fontUrl);
-        const fontResponse = await fetch(fontUrl);
-        if (fontResponse.ok) {
-          const fontText = await fontResponse.text();
-          let fontBase64: string | null = null;
-          
-          const base64Match1 = fontText.match(/var\s+font\s*=\s*['"]([^'"]+)['"]/);
-          if (base64Match1 && base64Match1[1]) {
-            fontBase64 = base64Match1[1];
-          } else {
-            const base64Match2 = fontText.match(/export\s+default\s+['"]([^'"]+)['"]/);
-            if (base64Match2 && base64Match2[1]) {
-              fontBase64 = base64Match2[1];
-            } else {
-              const trimmedText = fontText.trim().replace(/\s/g, '').replace(/\n/g, '');
-              if (trimmedText.length > 1000 && /^[A-Za-z0-9+/=]+$/.test(trimmedText)) {
-                fontBase64 = trimmedText;
-              }
-            }
-          }
-          
-          if (fontBase64) {
-            doc.addFileToVFS("NanumGothic-normal.ttf", fontBase64);
-            doc.addFont("NanumGothic-normal.ttf", "NanumGothic", "normal");
-            fontLoaded = true;
-            logger.info("한글 폰트 등록 성공");
-          }
-        }
-      } catch (e) {
-        logger.error("폰트 등록 실패:", e);
-      }
-      
-      if (fontLoaded) {
-        try {
-          doc.setFont("NanumGothic", "normal");
-        } catch (e) {
-          logger.warn("NanumGothic 폰트 설정 실패:", e);
-          fontLoaded = false;
-        }
-      }
-
-      const margin = 20;
-      let yPosition = 20;
-      const pageHeight = 297;
-
-      // 제목
-      doc.setFontSize(24);
-      doc.text("견적서 (목재 자재)", 105, yPosition, { align: "center" });
-      yPosition += 15;
-
-      // 회사 정보
-      doc.setFontSize(14);
-      doc.text("쉐누 (CHENOUS)", margin, yPosition);
-      yPosition += 8;
-      
-      doc.setFontSize(10);
-      const dateStr = new Date().toLocaleDateString("ko-KR", {
-        year: "numeric",
-        month: "long",
-        day: "numeric"
-      });
-      doc.text(`작성일: ${dateStr}`, margin, yPosition);
-      yPosition += 12;
-
-      // 구분선
-      doc.setDrawColor(200, 200, 200);
-      doc.line(margin, yPosition, 190, yPosition);
-      yPosition += 12;
-
-      // 견적 내역
-      doc.setFontSize(12);
-      if (fontLoaded) doc.setFont("NanumGothic", "normal");
-      doc.text("견적 내역", margin, yPosition);
-      yPosition += 12;
-
-      doc.setFontSize(10);
-      if (fontLoaded) doc.setFont("NanumGothic", "normal");
-
-      cart.forEach((item, index) => {
-        if (yPosition > pageHeight - 50) {
-          doc.addPage();
-          yPosition = 20;
-        }
-
-        // 항목 번호 및 제품명
-        doc.setFontSize(11);
-        if (fontLoaded) doc.setFont("NanumGothic", "normal");
-        const productName = `${index + 1}. ${item.name}`;
-        const splitProductName = doc.splitTextToSize(productName, 170);
-        doc.text(splitProductName, margin, yPosition);
-        yPosition += splitProductName.length * 6 + 2;
-
-        // 카테고리 정보
-        if (item.category) {
-          doc.setFontSize(9);
-          if (fontLoaded) doc.setFont("NanumGothic", "normal");
-          const categoryText = item.subCategory !== item.category
-            ? `${item.category} > ${item.subCategory}`
-            : item.category;
-          doc.text(`카테고리: ${categoryText}`, margin + 5, yPosition);
-          yPosition += 6;
-        }
-
-        // 상세 정보
-        doc.setFontSize(9);
-        if (fontLoaded) doc.setFont("NanumGothic", "normal");
-        doc.text(`단가: ${item.unitPrice.toLocaleString()}원`, margin + 5, yPosition);
-        yPosition += 6;
-        doc.text(`수량: ${item.quantity}개`, margin + 5, yPosition);
-        yPosition += 7;
-
-        // 소계 (마진 적용 전)
-        const baseTotal = item.finalPrice ? (item.finalPrice - (item.marginAmount || 0)) : item.totalPrice;
-        doc.setFont("NanumGothic", "normal");
-        doc.text(`소계 (마진 적용 전): ${baseTotal.toLocaleString()}원`, margin + 5, yPosition);
-        yPosition += 6;
-
-        // 마진 정보
-        if (item.margin && item.marginAmount) {
-          doc.setFontSize(9);
-          if (fontLoaded) doc.setFont("NanumGothic", "normal");
-          doc.text(`회사 마진 (${item.margin}%): +${item.marginAmount.toLocaleString()}원`, margin + 5, yPosition);
-          yPosition += 6;
-        }
-
-        // 최종 소계
-        const finalTotal = item.finalPrice || item.totalPrice;
-        doc.setFontSize(11);
-        if (fontLoaded) doc.setFont("NanumGothic", "normal");
-        doc.setDrawColor(0, 0, 0);
-        doc.text(`최종 소계: ${finalTotal.toLocaleString()}원`, margin + 5, yPosition);
-        yPosition += 10;
-
-        // 구분선
-        doc.setDrawColor(200, 200, 200);
-        doc.line(margin, yPosition, 190, yPosition);
-        yPosition += 8;
-      });
-
-      // 총합
-      if (yPosition > pageHeight - 30) {
-        doc.addPage();
-        yPosition = 20;
-      }
-
-      doc.setFontSize(12);
-      if (fontLoaded) doc.setFont("NanumGothic", "normal");
-      doc.setDrawColor(0, 0, 0);
-      doc.line(margin, yPosition, 190, yPosition);
-      yPosition += 10;
-
-      const totalPrice = calculateCartTotal();
-      
-      // 마진 적용 전 총액
-      const baseTotal = cart.reduce((sum, item) => {
-        const base = item.finalPrice ? (item.finalPrice - (item.marginAmount || 0)) : item.totalPrice;
-        return sum + base;
-      }, 0);
-      
-      // 총 마진 금액
-      const totalMargin = cart.reduce((sum, item) => sum + (item.marginAmount || 0), 0);
-      
-      doc.setFontSize(11);
-      if (fontLoaded) doc.setFont("NanumGothic", "normal");
-      doc.text(`총액 (마진 적용 전): ${baseTotal.toLocaleString()}원`, margin, yPosition);
-      yPosition += 7;
-      
-      if (totalMargin > 0) {
-        const marginPercent = cart.find(item => item.margin)?.margin || "0";
-        doc.setFontSize(10);
-        if (fontLoaded) doc.setFont("NanumGothic", "normal");
-        doc.text(`회사 마진 (${marginPercent}%): +${totalMargin.toLocaleString()}원`, margin, yPosition);
-        yPosition += 7;
-      }
-      
-      doc.setFontSize(14);
-      if (fontLoaded) doc.setFont("NanumGothic", "normal");
-      doc.setDrawColor(0, 0, 0);
-      doc.text(`총 예상 금액: ${totalPrice.toLocaleString()}원`, margin, yPosition);
-      yPosition += 10;
-
-      doc.setFontSize(9);
-      if (fontLoaded) doc.setFont("NanumGothic", "normal");
-      doc.text("* VAT 별도", margin, yPosition);
-      yPosition += 6;
-      const noteText = "* 본 견적서는 참고용이며, 실제 견적은 현장 확인 후 결정됩니다.";
-      const splitNote = doc.splitTextToSize(noteText, 170);
-      doc.text(splitNote, margin, yPosition);
-
-      // PDF 저장
-      const fileName = `견적서_목재자재_${new Date().toISOString().split("T")[0]}.pdf`;
-      doc.save(fileName);
-      toast.success("PDF 파일이 다운로드되었습니다.");
-    } catch (error) {
-      logger.error("PDF 생성 오류:", error);
-      toast.error("PDF 생성에 실패했습니다. 다시 시도해주세요.");
-    }
-  };
+  const calculateCartTotal = (): number => getCartTotal();
 
   const filteredProducts = products.filter((product) => {
     if (!searchQuery) return true;
@@ -495,6 +267,43 @@ export function WoodTab() {
   });
 
   return (
+    <div className="space-y-6">
+      {/* 목재 제품 검색 - 카테고리 선택 위 */}
+      <Card className="p-4 rounded-2xl bg-white/80 shadow-md">
+        <div className="flex flex-wrap gap-2 items-center">
+          <Search className="w-5 h-5 text-indigo-600" />
+          <Input
+            placeholder="목재 제품명으로 검색..."
+            value={woodSearchKeyword}
+            onChange={(e) => setWoodSearchKeyword(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleWoodProductSearch()}
+            className="max-w-xs"
+          />
+          <Button onClick={handleWoodProductSearch} disabled={woodSearchLoading} size="sm">
+            {woodSearchLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4 mr-1" />}
+            검색
+          </Button>
+        </div>
+        {woodSearchResults.length > 0 && (
+          <ul className="mt-3 border-t pt-3 space-y-1 max-h-48 overflow-y-auto">
+            {woodSearchResults.map((item) => (
+              <li key={`${item.productId}-${item.categoryId}`}>
+                <button
+                  type="button"
+                  onClick={() => handleWoodSearchResultClick(item)}
+                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-indigo-50 text-sm flex flex-col gap-0.5"
+                >
+                  <span className="font-medium">{item.productName}</span>
+                  <span className="text-gray-500 text-xs">
+                    {[item.companyName, item.categoryName, item.size].filter(Boolean).join(" · ")}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
     <div className="grid lg:grid-cols-3 gap-6">
       {/* 좌측: 카테고리 및 제품 선택 */}
       <Card className="lg:col-span-2 p-8 rounded-3xl bg-gradient-to-br from-white to-slate-50/50 shadow-xl shadow-indigo-500/5">
@@ -598,9 +407,14 @@ export function WoodTab() {
                     onClick={() => setSelectedProduct(product.id.toString())}
                   >
                     <div className="space-y-2">
+                      {product.companyName && (
+                        <p className="text-xs font-medium text-indigo-600 uppercase tracking-wide">{product.companyName}</p>
+                      )}
                       <h4 className="font-semibold text-lg">{product.name}</h4>
-                      {product.description && (
-                        <p className="text-sm text-gray-600">{product.description}</p>
+                      {(product.size || product.description) && (
+                        <p className="text-sm text-gray-600">
+                          {[product.size, product.description].filter(Boolean).join(" · ")}
+                        </p>
                       )}
                       <div className="flex justify-between items-center pt-2">
                         <span className="text-indigo-700 font-bold text-lg">
@@ -801,50 +615,86 @@ export function WoodTab() {
               <>
                 <ScrollArea className="h-[400px] pr-4">
                   <div className="space-y-4">
-                    {cart.map((item) => (
-                      <div
-                        key={item.id}
-                        className="p-5 bg-white rounded-2xl border border-gray-200 hover:border-indigo-300 hover:shadow-lg transition-all duration-300"
-                      >
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex-1">
-                            <div className="font-medium text-base">{item.name}</div>
-                            <div className="text-xs text-gray-500 mt-1">
-                              {item.category}
-                              {item.subCategory !== item.category && ` > ${item.subCategory}`}
+                    {cart.map((entry) => {
+                      const id = entry.source === "estimate" ? entry.item.id : entry.item.id;
+                      return (
+                        <div
+                          key={id}
+                          className="p-5 bg-white rounded-2xl border border-gray-200 hover:border-indigo-300 hover:shadow-lg transition-all duration-300"
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex-1">
+                              {entry.source === "estimate" ? (
+                                <>
+                                  <div className="font-medium text-base">{entry.item.productName}</div>
+                                  {entry.item.categoryName && (
+                                    <div className="text-xs text-gray-500 mt-1">
+                                      {entry.item.categoryName}
+                                      {entry.item.subCategoryName && ` > ${entry.item.subCategoryName}`}
+                                    </div>
+                                  )}
+                                </>
+                              ) : (
+                                <>
+                                  <div className="font-medium text-base">{entry.item.name}</div>
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    {entry.item.category}
+                                    {entry.item.subCategory !== entry.item.category && ` > ${entry.item.subCategory}`}
+                                  </div>
+                                </>
+                              )}
                             </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => removeCartItem(id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => removeFromCart(item.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          <div className="space-y-1 text-sm text-gray-600 mt-2">
+                            {entry.source === "estimate" ? (
+                              <>
+                                <div className="flex justify-between">
+                                  <span>기본 단가</span>
+                                  <span>{entry.item.unitPrice.toLocaleString()}원</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>수량</span>
+                                  <span>{entry.item.quantity}개</span>
+                                </div>
+                                <div className="flex justify-between font-semibold text-gray-800 pt-2 border-t-2 border-gray-300 mt-2">
+                                  <span>소계</span>
+                                  <span>{(entry.item.finalPrice ?? entry.item.totalPrice).toLocaleString()}원</span>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="flex justify-between">
+                                  <span>단가</span>
+                                  <span>{entry.item.unitPrice.toLocaleString()}원</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>수량</span>
+                                  <span>{entry.item.quantity}개</span>
+                                </div>
+                                {entry.item.margin && entry.item.marginAmount && (
+                                  <div className="flex justify-between text-blue-700">
+                                    <span>회사 마진 ({entry.item.margin}%)</span>
+                                    <span>+{entry.item.marginAmount.toLocaleString()}원</span>
+                                  </div>
+                                )}
+                                <div className="flex justify-between font-semibold text-gray-800 pt-2 border-t-2 border-gray-300 mt-2">
+                                  <span>소계</span>
+                                  <span>{(entry.item.finalPrice ?? entry.item.totalPrice).toLocaleString()}원</span>
+                                </div>
+                              </>
+                            )}
+                          </div>
                         </div>
-                        <div className="space-y-1 text-sm text-gray-600 mt-2">
-                          <div className="flex justify-between">
-                            <span>단가</span>
-                            <span>{item.unitPrice.toLocaleString()}원</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>수량</span>
-                            <span>{item.quantity}개</span>
-                          </div>
-                          {item.margin && item.marginAmount && (
-                            <div className="flex justify-between text-blue-700">
-                              <span>회사 마진 ({item.margin}%)</span>
-                              <span>+{item.marginAmount.toLocaleString()}원</span>
-                            </div>
-                          )}
-                          <div className="flex justify-between font-semibold text-gray-800 pt-2 border-t-2 border-gray-300 mt-2">
-                            <span>소계</span>
-                            <span>{(item.finalPrice || item.totalPrice).toLocaleString()}원</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </ScrollArea>
 
@@ -867,7 +717,7 @@ export function WoodTab() {
                 <Button
                   variant="outline"
                   className="flex-1"
-                  onClick={() => setCart([])}
+                  onClick={clearCart}
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   장바구니 비우기
@@ -875,7 +725,7 @@ export function WoodTab() {
                 <Button
                   variant="outline"
                   className="flex-1"
-                  onClick={generatePDF}
+                  onClick={() => generatePDF()}
                 >
                   <FileDown className="w-4 h-4 mr-2" />
                   PDF로 변환
@@ -894,6 +744,7 @@ export function WoodTab() {
           )}
         </Card>
       </div>
+    </div>
     </div>
   );
 }

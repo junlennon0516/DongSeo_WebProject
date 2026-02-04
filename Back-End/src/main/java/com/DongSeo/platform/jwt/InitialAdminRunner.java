@@ -21,13 +21,24 @@ public class InitialAdminRunner implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        if (userRepository.count() > 0) return;
+        // 사용자가 한 명도 없을 때만 admin 생성
+        if (userRepository.count() == 0) {
+            User admin = new User(
+                    "admin",
+                    passwordEncoder.encode("admin123"),
+                    "ADMIN"
+            );
+            userRepository.save(admin);
+        }
 
-        User admin = new User(
-                "admin",
-                passwordEncoder.encode("admin123"),
-                "ADMIN"
-        );
-        userRepository.save(admin);
+        // ds2200 계정이 없으면 생성 (이미 admin만 있는 DB에서도 로그인 가능하도록)
+        if (userRepository.findByUsername("ds2200").isEmpty()) {
+            User staff = new User(
+                    "ds2200",
+                    passwordEncoder.encode("3132200!"),
+                    "STAFF"
+            );
+            userRepository.save(staff);
+        }
     }
 }

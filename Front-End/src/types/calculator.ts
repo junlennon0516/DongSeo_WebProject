@@ -16,7 +16,7 @@ export interface ExtendedEstimateResponse extends EstimateResponse {
 }
 
 /**
- * 장바구니 항목 타입
+ * 장바구니 항목 타입 (도어/문틀 견적)
  */
 export interface CartItem extends ExtendedEstimateResponse {
   id: string; // 고유 ID
@@ -28,3 +28,26 @@ export interface CartItem extends ExtendedEstimateResponse {
   selectedColorName?: string; // 선택된 색상 이름
   selectedColorCode?: string; // 선택된 색상 코드
 }
+
+/**
+ * 목재 자재 장바구니 항목 타입
+ */
+export interface WoodProduct {
+  id: string;
+  name: string;
+  category: string;
+  subCategory: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  margin?: string;
+  marginAmount?: number;
+  finalPrice?: number;
+}
+
+/**
+ * 통합 장바구니 항목 (도어/문틀 + 목재)
+ */
+export type UnifiedCartItem =
+  | { source: "estimate"; item: CartItem }
+  | { source: "wood"; item: WoodProduct };

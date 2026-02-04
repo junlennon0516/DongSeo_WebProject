@@ -16,6 +16,9 @@ export interface Product {
   name: string;
   basePrice: number;
   description?: string;
+  size?: string;
+  companyId?: number;
+  companyName?: string;
   category: {
     id: number;
     name: string;
@@ -125,6 +128,31 @@ export async function fetchSubCategories(parentId: number): Promise<Category[]> 
     console.error('세부 카테고리 조회 에러:', error);
     throw error;
   }
+}
+
+/** 견적용 제품 검색 결과 한 건 */
+export interface ProductSearchItem {
+  productId: number;
+  productName: string;
+  categoryId: number;
+  categoryName: string;
+  categoryCode?: string;
+  parentCategoryId: number | null;
+  companyId?: number;
+  companyName?: string;
+  size?: string;  // 목재 합판 규격 (예: 1220 × 2440mm)
+}
+
+/** 견적용 제품 검색 (상세 견적 계산기 위 검색) */
+export async function searchProductsForEstimate(params: { keyword?: string; companyId?: number }): Promise<ProductSearchItem[]> {
+  const sp = new URLSearchParams();
+  if (params.keyword != null && params.keyword !== "") sp.set("keyword", params.keyword);
+  if (params.companyId != null) sp.set("companyId", String(params.companyId));
+  const q = sp.toString();
+  const url = `${API_BASE_URL}/products/search${q ? `?${q}` : ""}`;
+  const response = await fetch(url, { method: "GET", headers: headers() });
+  if (!response.ok) throw new Error(`제품 검색 실패 (${response.status})`);
+  return response.json();
 }
 
 // 카테고리별 제품 목록 조회

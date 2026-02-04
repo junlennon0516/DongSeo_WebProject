@@ -3,12 +3,14 @@ package com.DongSeo.platform.domain;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "categories", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"company_id", "code"})
 })
 @Getter
+@Setter
 @NoArgsConstructor
 public class Category {
     @Id

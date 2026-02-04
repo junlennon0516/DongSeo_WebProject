@@ -174,11 +174,16 @@ public class EstimateController {
                                 p.getCategory().getName(),
                                 p.getCategory().getCode()
                         );
+                        Long compId = p.getCompany() != null ? p.getCompany().getId() : null;
+                        String compName = p.getCompany() != null ? p.getCompany().getName() : null;
                         return new ProductResponse(
                                 p.getId(),
                                 p.getName(),
                                 p.getBasePrice(),
                                 p.getDescription(),
+                                p.getSize(),
+                                compId,
+                                compName,
                                 categoryInfo
                         );
                     })
@@ -190,6 +195,39 @@ public class EstimateController {
             log.error("제품 조회 실패: categoryId={}", categoryId, e);
             throw e;
         }
+    }
+
+    /**
+     * 견적용 제품 검색 (상세 견적 계산기 위 검색용, 공개 API)
+     * 키워드로 제품명/설명 검색, 선택적으로 회사 필터.
+     */
+    @GetMapping("/products/search")
+    @Transactional(readOnly = true)
+    public ResponseEntity<List<ProductSearchItemDto>> searchProducts(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long companyId) {
+        String q = (keyword != null && keyword.isBlank()) ? null : keyword;
+        List<Product> products = productRepository.searchForAdmin(q, companyId, null);
+        List<ProductSearchItemDto> list = products.stream()
+                .map(p -> {
+                    Category c = p.getCategory();
+                    Long parentId = (c.getParent() != null) ? c.getParent().getId() : null;
+                    Long compId = p.getCompany() != null ? p.getCompany().getId() : null;
+                    String compName = p.getCompany() != null ? p.getCompany().getName() : null;
+                    return new ProductSearchItemDto(
+                            p.getId(),
+                            p.getName(),
+                            c.getId(),
+                            c.getName(),
+                            c.getCode(),
+                            parentId,
+                            compId,
+                            compName,
+                            p.getSize()
+                    );
+                })
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(list);
     }
 
     /**

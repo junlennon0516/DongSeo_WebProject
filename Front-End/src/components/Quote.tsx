@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { CartProvider } from '../contexts/CartContext';
 import { CalculatorTab } from './Quote/CalculatorTab';
 import { WoodTab } from './Quote/WoodTab';
 import { AIChatTab } from './Quote/AIChatTab';
@@ -48,6 +49,7 @@ export function Quote() {
         </div>
 
         <div className="max-w-6xl mx-auto">
+          <CartProvider>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="mb-6 bg-[#FFF2C6] p-1.5 rounded-xl">
               <TabsTrigger value="calculator" className="flex items-center gap-2 data-[state=active]:bg-[#8CA9FF] data-[state=active]:text-white data-[state=active]:shadow-md">
@@ -73,6 +75,7 @@ export function Quote() {
               <AIChatTab />
             </TabsContent>
           </Tabs>
+          </CartProvider>
         </div>
       </div>
     </section>

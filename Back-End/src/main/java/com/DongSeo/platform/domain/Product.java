@@ -3,10 +3,12 @@ package com.DongSeo.platform.domain;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "products")
 @Getter
+@Setter
 @NoArgsConstructor
 public class Product {
     @Id
@@ -27,4 +29,7 @@ public class Product {
     private Integer basePrice = 0; // 기본 단가
 
     private String description;
+
+    /** 목재 합판 등 규격 (예: 1220 × 2440mm, 910 × 1820mm) */
+    private String size;
 }

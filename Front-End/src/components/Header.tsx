@@ -1,4 +1,4 @@
-import { LogOut, Phone } from "lucide-react";
+import { LogOut, Phone, Package } from "lucide-react";
 import { CONTACT_INFO } from "../constants";
 import { useAuth } from "../contexts/AuthContext";
 import { Button } from "./ui/button";
@@ -30,6 +30,13 @@ export function Header() {
                 {username}
               </span>
             )}
+            <a
+              href="#admin-products"
+              className="flex items-center gap-1 sm:gap-2 text-sm text-gray-700 hover:text-[#8CA9FF] transition-all duration-300 px-2 sm:px-4 py-2 rounded-lg hover:bg-[#AAC4F5]/20"
+            >
+              <Package className="w-4 h-4 flex-shrink-0" />
+              <span className="hidden sm:inline font-medium">제품 관리</span>
+            </a>
             <a
               href={`tel:${CONTACT_INFO.phone}`}
               className="flex items-center gap-1 sm:gap-2 text-sm text-gray-700 hover:text-[#8CA9FF] transition-all duration-300 px-2 sm:px-4 py-2 rounded-lg hover:bg-[#AAC4F5]/20"

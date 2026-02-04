@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { logger } from "../../utils/logger";
 import { COMPANY_ID, DEFAULT_TYPE_NAME, DEFAULT_QUANTITY, DEFAULT_ABS_DOOR_WIDTH, DEFAULT_ABS_DOOR_HEIGHT } from "../../constants/calculator";
 import type { ExtendedEstimateResponse, CartItem } from "../../types/calculator";
+import { useCart } from "../../contexts/CartContext";
 import {
   fetchCategories,
   fetchSubCategories,
@@ -32,15 +33,14 @@ import {
   fetchVariants,
   fetchColors,
   calculateEstimate,
-  exportEstimatePdf,
-  type EstimatePdfRequest,
+  searchProductsForEstimate,
   type Category,
   type Product,
+  type ProductSearchItem,
   type Option,
   type ProductVariant,
   type Color,
 } from "../../api/estimateApi";
-import { getFontUrl } from "../../config/api";
 
 export function CalculatorTab() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -68,7 +68,10 @@ export function CalculatorTab() {
   const [isLoadingData, setIsLoadingData] = useState(false);
   
   const [result, setResult] = useState<ExtendedEstimateResponse | null>(null);
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const { cart, addEstimateItem, removeCartItem, clearCart, getCartTotal, generatePDF } = useCart();
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [searchResults, setSearchResults] = useState<ProductSearchItem[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   // 초기 데이터 로드
   useEffect(() => {
@@ -440,9 +443,8 @@ export function CalculatorTab() {
       finalPrice: result.finalPrice,
     };
 
-    setCart((prev) => [...prev, cartItem]);
-    toast.success("장바구니에 추가되었습니다.");
-    
+    addEstimateItem(cartItem);
+
     // 계산 폼 초기화 (마진은 유지)
     setResult(null);
     setSelectedProduct("");
@@ -456,19 +458,8 @@ export function CalculatorTab() {
     // 마진은 초기화하지 않음 (여러 견적에 동일하게 적용)
   };
 
-  // 장바구니에서 견적 제거
-  const removeFromCart = (id: string) => {
-    setCart((prev) => prev.filter((item) => item.id !== id));
-    toast.success("장바구니에서 제거되었습니다.");
-  };
-
-  // 장바구니 총합 계산
-  const calculateCartTotal = (): number => {
-    // 마진이 적용된 최종 가격이 있으면 그것을 사용, 없으면 totalPrice 사용
-    return cart.reduce((total, item) => {
-      return total + (item.finalPrice || item.totalPrice || 0);
-    }, 0);
-  };
+  // 장바구니 총합 계산 (통합 장바구니)
+  const calculateCartTotal = (): number => getCartTotal();
 
   // 한글 텍스트 인코딩 정규화 함수
   // EUC-KR/CP949로 잘못 인코딩된 텍스트를 UTF-8로 변환
@@ -495,398 +486,7 @@ export function CalculatorTab() {
     return text;
   };
 
-  // PDF 생성: 서버 export-pdf 우선 (EC2 한글 폰트), 실패 시 클라이언트 jsPDF 폴백
-  const generatePDF = async () => {
-    if (cart.length === 0) {
-      toast.error("장바구니가 비어있습니다.");
-      return;
-    }
-
-    const dateStr = new Date().toLocaleDateString("ko-KR", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-    const baseTotal = cart.reduce((sum, item) => {
-      const base = item.finalPrice ? item.finalPrice - (item.marginAmount || 0) : item.totalPrice;
-      return sum + base;
-    }, 0);
-    const totalMargin = cart.reduce((sum, item) => sum + (item.marginAmount || 0), 0);
-    const totalPrice = calculateCartTotal();
-    const marginPercent = cart.find((i) => i.margin)?.margin ?? "0";
-
-    const pdfRequest: EstimatePdfRequest = {
-      companyName: "쉐누 (CHENOUS)",
-      dateStr,
-      items: cart.map((item) => {
-        const base = item.finalPrice ? item.finalPrice - (item.marginAmount || 0) : item.totalPrice;
-        const colorCost = item.colorCostInfo
-          ? `(${item.colorCostInfo.colorName}) (${Math.round((item.colorCostInfo.costRate ?? 0) * 100)}% 인상)`
-          : undefined;
-        return {
-          productName: item.productName,
-          categoryName: item.categoryName,
-          subCategoryName: item.subCategoryName,
-          specName: item.specName,
-          typeName: item.typeName,
-          width: item.width,
-          height: item.height,
-          selectedColorName: item.selectedColorName,
-          selectedColorCode: item.selectedColorCode,
-          unitPrice: item.unitPrice,
-          priceIncreaseReason: item.priceIncreaseInfo?.reason,
-          colorCostInfo: colorCost,
-          optionPrice: item.optionPrice ?? 0,
-          selectedOptions: item.selectedOptions ?? [],
-          quantity: item.quantity,
-          baseTotal: base,
-          margin: item.margin,
-          marginAmount: item.marginAmount ?? 0,
-          finalTotal: item.finalPrice ?? item.totalPrice,
-        };
-      }),
-      baseTotal,
-      totalMargin,
-      marginPercent,
-      totalPrice,
-    };
-
-    try {
-      const blob = await exportEstimatePdf(pdfRequest);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `견적서_${new Date().toISOString().split("T")[0]}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-      toast.success("PDF 파일이 다운로드되었습니다.");
-      return;
-    } catch (e) {
-      logger.warn("서버 PDF 생성 실패, 클라이언트 jsPDF 폴백:", e);
-      toast.info("서버 PDF 생성에 실패해 브라우저에서 생성합니다.");
-    }
-
-    try {
-      // jsPDF 동적 import (폴백)
-      const { jsPDF } = await import("jspdf");
-      
-      const doc = new jsPDF("p", "mm", "a4");
-
-      // 한글 폰트 동적 로드 및 등록
-      let fontLoaded = false;
-      
-      try {
-        // base64로 인코딩된 폰트 파일 로드 (백엔드 서버에서 제공)
-        const fontUrl = getFontUrl();
-        logger.debug("폰트 파일 URL:", fontUrl);
-        const fontResponse = await fetch(fontUrl);
-        if (!fontResponse.ok) {
-          throw new Error(`HTTP ${fontResponse.status}`);
-        }
-        // 폰트 파일을 텍스트로 로드 (UTF-8로 디코딩)
-        // 서버에서 올바른 Content-Type과 charset을 보내야 함
-        const fontText = await fontResponse.text();
-        
-        // base64 문자열 추출
-        let fontBase64: string | null = null;
-        
-        // 형식 1: fontconverter 형식 - var font = 'base64...';
-        const base64Match1 = fontText.match(/var\s+font\s*=\s*['"]([^'"]+)['"]/);
-        if (base64Match1 && base64Match1[1]) {
-          fontBase64 = base64Match1[1];
-        } else {
-          // 형식 2: export default 'base64...';
-          const base64Match2 = fontText.match(/export\s+default\s+['"]([^'"]+)['"]/);
-          if (base64Match2 && base64Match2[1]) {
-            fontBase64 = base64Match2[1];
-          } else {
-            // 형식 3: 전체가 base64 문자열인 경우 (공백, 줄바꿈 제거)
-            const trimmedText = fontText.trim().replace(/\s/g, '').replace(/\n/g, '');
-            // base64 문자열은 최소 1000자 이상이고, base64 문자만 포함
-            if (trimmedText.length > 1000 && /^[A-Za-z0-9+/=]+$/.test(trimmedText)) {
-              fontBase64 = trimmedText;
-            }
-          }
-        }
-        
-        if (fontBase64) {
-          // VFS에 폰트 파일 추가
-          doc.addFileToVFS("NanumGothic-normal.ttf", fontBase64);
-          // 폰트 등록
-          doc.addFont("NanumGothic-normal.ttf", "NanumGothic", "normal");
-          fontLoaded = true;
-            logger.info("한글 폰트 등록 성공");
-          } else {
-            logger.error("폰트 base64 문자열을 찾을 수 없습니다. 파일 형식을 확인해주세요.");
-            logger.debug("파일 시작 부분:", fontText.substring(0, 200));
-        }
-      } catch (e) {
-        logger.error("폰트 등록 실패:", e);
-      }
-      
-      // 폰트 설정 (한글 표시를 위해 필수)
-      if (fontLoaded) {
-        try {
-          doc.setFont("NanumGothic", "normal");
-        } catch (e) {
-          logger.warn("NanumGothic 폰트 설정 실패:", e);
-          fontLoaded = false;
-        }
-      } else {
-        logger.warn("NanumGothic 폰트를 사용할 수 없습니다. 한글이 깨질 수 있습니다.");
-      }
-
-      const margin = 20;
-      let yPosition = 20;
-      const pageHeight = 297; // A4 세로 (mm)
-
-      // 제목
-      doc.setFontSize(24);
-      doc.text("견적서", 105, yPosition, { align: "center" });
-      yPosition += 15;
-
-      // 회사 정보
-      doc.setFontSize(14);
-      doc.text("쉐누 (CHENOUS)", margin, yPosition);
-      yPosition += 8;
-      
-      doc.setFontSize(10);
-      const dateStr = new Date().toLocaleDateString("ko-KR", {
-        year: "numeric",
-        month: "long",
-        day: "numeric"
-      });
-      doc.text(`작성일: ${dateStr}`, margin, yPosition);
-      yPosition += 12;
-
-      // 구분선
-      doc.setDrawColor(200, 200, 200);
-      doc.line(margin, yPosition, 190, yPosition);
-      yPosition += 12;
-
-      // 장바구니 항목들
-      doc.setFontSize(12);
-      doc.setFont("NanumGothic", "normal");
-      doc.text("견적 내역", margin, yPosition);
-      yPosition += 12;
-
-      doc.setFontSize(10);
-      doc.setFont("NanumGothic", "normal");
-
-      cart.forEach((item, index) => {
-        // 페이지 넘김 체크
-        if (yPosition > pageHeight - 50) {
-          doc.addPage();
-          yPosition = 20;
-        }
-
-        // 항목 번호 및 제품명
-        doc.setFontSize(11);
-        doc.setFont("NanumGothic", "normal");
-        // 목재문틀인 경우 제품명을 "목재문틀"로 변경
-        const normalizedProductName = normalizeKoreanText(item.productName);
-        const displayProductName = (normalizedProductName?.includes("목재문틀") || 
-                                   normalizedProductName?.includes("才") ||
-                                   normalizedProductName?.includes("사이")) 
-                                   ? "목재문틀" 
-                                   : normalizedProductName;
-        const productName = `${index + 1}. ${displayProductName}`;
-        // 긴 제품명은 여러 줄로 분할
-        const splitProductName = doc.splitTextToSize(productName, 170);
-        doc.text(splitProductName, margin, yPosition);
-        yPosition += splitProductName.length * 6 + 2;
-
-        // 카테고리 정보
-        if (item.categoryName) {
-          doc.setFontSize(9);
-          doc.setFont("NanumGothic", "normal");
-          const normalizedCategoryName = normalizeKoreanText(item.categoryName);
-          const normalizedSubCategoryName = normalizeKoreanText(item.subCategoryName);
-          const categoryText = normalizedSubCategoryName
-            ? `${normalizedCategoryName} > ${normalizedSubCategoryName}`
-            : normalizedCategoryName;
-          doc.text(`카테고리: ${categoryText}`, margin + 5, yPosition);
-          yPosition += 6;
-        }
-
-        // 규격 및 타입 정보
-        if (item.specName || item.typeName) {
-          doc.setFontSize(9);
-          doc.setFont("NanumGothic", "normal");
-          const normalizedSpecName = normalizeKoreanText(item.specName);
-          const normalizedTypeName = normalizeKoreanText(item.typeName);
-          const specTypeText = [normalizedSpecName, normalizedTypeName].filter(Boolean).join(" / ");
-          if (specTypeText) {
-            doc.text(`규격/타입: ${specTypeText}`, margin + 5, yPosition);
-            yPosition += 6;
-          }
-        }
-
-        // 사이즈 정보
-        if (item.width || item.height) {
-          doc.setFontSize(9);
-          doc.setFont("NanumGothic", "normal");
-          const sizeText = [item.width ? `가로: ${item.width}mm` : "", item.height ? `세로: ${item.height}mm` : ""]
-            .filter(Boolean)
-            .join(", ");
-          if (sizeText) {
-            doc.text(`사이즈: ${sizeText}`, margin + 5, yPosition);
-            yPosition += 6;
-          }
-        }
-
-        // 색상 정보
-        if (item.selectedColorName) {
-          doc.setFontSize(9);
-          doc.setFont("NanumGothic", "normal");
-          const normalizedColorName = normalizeKoreanText(item.selectedColorName);
-          const normalizedColorCode = normalizeKoreanText(item.selectedColorCode);
-          const colorText = normalizedColorCode
-            ? `${normalizedColorName} (${normalizedColorCode})`
-            : normalizedColorName;
-          doc.text(`색상: ${colorText}`, margin + 5, yPosition);
-          yPosition += 6;
-        }
-
-        // 상세 정보
-        doc.setFontSize(9);
-        doc.setFont("NanumGothic", "normal");
-        doc.text(`기본 단가: ${item.unitPrice.toLocaleString()}원`, margin + 5, yPosition);
-        yPosition += 6;
-
-        // 사이즈로 인한 가격 인상 정보
-        if (item.priceIncreaseInfo) {
-          doc.setFontSize(9);
-          doc.setFont("NanumGothic", "normal");
-          const increaseText = `${item.priceIncreaseInfo.reason}`;
-          doc.text(increaseText, margin + 5, yPosition);
-          yPosition += 6;
-        }
-
-        // 색상 추가 비용 정보
-        if (item.colorCostInfo) {
-          doc.setFontSize(9);
-          doc.setFont("NanumGothic", "normal");
-          const colorCostText = `색상 추가 비용 (${item.colorCostInfo.colorName}) (${Math.round(item.colorCostInfo.costRate * 100)}% 인상)`;
-          doc.text(colorCostText, margin + 5, yPosition);
-          yPosition += 6;
-        }
-
-        if (item.optionPrice !== 0) {
-          doc.setFontSize(9);
-          doc.setFont("NanumGothic", "normal");
-          doc.text(
-            `추가 옵션 가격: ${item.optionPrice > 0 ? "+" : ""}${item.optionPrice.toLocaleString()}원`,
-            margin + 5,
-            yPosition
-          );
-          yPosition += 6;
-        }
-
-        // 선택된 옵션 상세 정보
-        if (item.selectedOptions && item.selectedOptions.length > 0) {
-          doc.setFontSize(9);
-          doc.setFont("NanumGothic", "normal");
-          const normalizedOptions = item.selectedOptions.map(opt => normalizeKoreanText(opt));
-          const optionsText = `선택 옵션: ${normalizedOptions.join(", ")}`;
-          const splitOptions = doc.splitTextToSize(optionsText, 170);
-          doc.text(splitOptions, margin + 5, yPosition);
-          yPosition += splitOptions.length * 5;
-        }
-
-        doc.setFontSize(9);
-        doc.setFont("NanumGothic", "normal");
-        doc.text(`수량: ${item.quantity}개`, margin + 5, yPosition);
-        yPosition += 7;
-
-        // 소계 (마진 적용 전)
-        const baseTotal = item.finalPrice ? (item.finalPrice - (item.marginAmount || 0)) : item.totalPrice;
-        doc.setFont("NanumGothic", "normal");
-        doc.text(`소계 (마진 적용 전): ${baseTotal.toLocaleString()}원`, margin + 5, yPosition);
-        yPosition += 6;
-
-        // 마진 정보
-        if (item.margin && item.marginAmount) {
-          doc.setFontSize(9);
-          doc.setFont("NanumGothic", "normal");
-          doc.text(`회사 마진 (${item.margin}%): +${item.marginAmount.toLocaleString()}원`, margin + 5, yPosition);
-          yPosition += 6;
-        }
-
-        // 최종 소계 (마진 적용 후)
-        const finalTotal = item.finalPrice || item.totalPrice;
-        doc.setFontSize(11);
-        doc.setFont("NanumGothic", "normal"); // bold 대신 normal 사용 (한글 깨짐 방지)
-        doc.setDrawColor(0, 0, 0); // 검은색으로 강조
-        doc.text(`최종 소계: ${finalTotal.toLocaleString()}원`, margin + 5, yPosition);
-        yPosition += 10;
-
-        // 구분선
-        doc.setDrawColor(200, 200, 200);
-        doc.line(margin, yPosition, 190, yPosition);
-        yPosition += 8;
-      });
-
-      // 총합
-      if (yPosition > pageHeight - 30) {
-        doc.addPage();
-        yPosition = 20;
-      }
-
-      doc.setFontSize(12);
-      doc.setFont("NanumGothic", "normal");
-      doc.setDrawColor(0, 0, 0);
-      doc.line(margin, yPosition, 190, yPosition);
-      yPosition += 10;
-
-      const totalPrice = calculateCartTotal();
-      
-      // 마진 적용 전 총액 계산
-      const baseTotal = cart.reduce((sum, item) => {
-        const base = item.finalPrice ? (item.finalPrice - (item.marginAmount || 0)) : item.totalPrice;
-        return sum + base;
-      }, 0);
-      
-      // 총 마진 금액
-      const totalMargin = cart.reduce((sum, item) => sum + (item.marginAmount || 0), 0);
-      
-      doc.setFontSize(11);
-      doc.setFont("NanumGothic", "normal");
-      doc.text(`총액 (마진 적용 전): ${baseTotal.toLocaleString()}원`, margin, yPosition);
-      yPosition += 7;
-      
-      if (totalMargin > 0) {
-        const marginPercent = cart.find(item => item.margin)?.margin || "0";
-        doc.setFontSize(10);
-        doc.setFont("NanumGothic", "normal");
-        doc.text(`회사 마진 (${marginPercent}%): +${totalMargin.toLocaleString()}원`, margin, yPosition);
-        yPosition += 7;
-      }
-      
-      doc.setFontSize(14);
-      doc.setFont("NanumGothic", "normal"); // bold 대신 normal 사용 (한글 깨짐 방지)
-      doc.setDrawColor(0, 0, 0); // 검은색으로 강조
-      doc.text(`총 예상 금액: ${totalPrice.toLocaleString()}원`, margin, yPosition);
-      yPosition += 10;
-
-      doc.setFontSize(9);
-      doc.setFont("NanumGothic", "normal");
-      doc.text("* VAT 별도", margin, yPosition);
-      yPosition += 6;
-      const noteText = "* 본 견적서는 참고용이며, 실제 견적은 현장 확인 후 결정됩니다.";
-      const splitNote = doc.splitTextToSize(noteText, 170);
-      doc.text(splitNote, margin, yPosition);
-
-      // PDF 저장
-      const fileName = `견적서_${new Date().toISOString().split("T")[0]}.pdf`;
-      doc.save(fileName);
-      toast.success("PDF 파일이 다운로드되었습니다.");
-    } catch (error) {
-      logger.error("PDF 생성 오류:", error);
-      toast.error("PDF 생성에 실패했습니다. 다시 시도해주세요.");
-    }
-  };
-
+  // PDF 생성: 통합 장바구니(도어/문틀+목재)는 CartContext.generatePDF 사용
   const handleCalculate = async () => {
     const subCategoryObj = subCategories.find(
       (sc) => sc.id.toString() === selectedSubCategory
@@ -1375,7 +975,65 @@ export function CalculatorTab() {
   );
   const categoryCode = selectedCategoryObj?.code;
 
+  const handleProductSearch = async () => {
+    setSearchLoading(true);
+    try {
+      const list = await searchProductsForEstimate({ keyword: searchKeyword.trim() || undefined, companyId: COMPANY_ID });
+      setSearchResults(list);
+    } catch (e: any) {
+      toast.error(e.message || "검색 실패");
+      setSearchResults([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const handleSearchResultClick = (item: ProductSearchItem) => {
+    const mainId = item.parentCategoryId ?? item.categoryId;
+    const subId = item.parentCategoryId != null ? item.categoryId : null;
+    setSelectedCategory(mainId.toString());
+    setSelectedSubCategory(subId != null ? subId.toString() : "");
+    setSelectedProduct(item.productId.toString());
+    setSearchResults([]);
+    setSearchKeyword("");
+  };
+
   return (
+    <div className="space-y-6">
+      {/* 견적 검색 - 상세 견적 계산기 위 */}
+      <Card className="p-4 rounded-2xl bg-white/80 shadow-md">
+        <div className="flex flex-wrap gap-2 items-center">
+          <Search className="w-5 h-5 text-indigo-600" />
+          <Input
+            placeholder="제품명으로 견적 찾기..."
+            value={searchKeyword}
+            onChange={(e) => setSearchKeyword(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleProductSearch()}
+            className="max-w-xs"
+          />
+          <Button onClick={handleProductSearch} disabled={searchLoading} size="sm">
+            {searchLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4 mr-1" />}
+            검색
+          </Button>
+        </div>
+        {searchResults.length > 0 && (
+          <ul className="mt-3 border-t pt-3 space-y-1 max-h-48 overflow-y-auto">
+            {searchResults.map((item) => (
+              <li key={`${item.productId}-${item.categoryId}`}>
+                <button
+                  type="button"
+                  onClick={() => handleSearchResultClick(item)}
+                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-indigo-50 text-sm flex justify-between items-center"
+                >
+                  <span className="font-medium">{item.productName}</span>
+                  <span className="text-gray-500">{item.categoryName}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
     <div className="grid lg:grid-cols-3 gap-6">
       <Card className="lg:col-span-2 p-8 rounded-3xl bg-gradient-to-br from-white to-slate-50/50 shadow-xl shadow-indigo-500/5">
         <h3 className="mb-8 flex items-center gap-3 text-2xl font-bold">
@@ -2535,69 +2193,103 @@ export function CalculatorTab() {
               </div>
             ) : (
               <>
-                {/* 화면 표시용 장바구니 (삭제 버튼 포함) */}
+                {/* 통합 장바구니 (도어/문틀 + 목재) */}
                 <div className="space-y-4 max-h-96 overflow-y-auto">
-                  {cart.map((item) => (
-                    <div
-                      key={item.id}
-                      className="p-5 bg-white rounded-2xl border border-gray-200 hover:border-indigo-300 hover:shadow-lg transition-all duration-300"
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="flex-1">
-                          <div className="font-medium text-base">
-                            {(() => {
-                              // 목재문틀인 경우 제품명을 "목재문틀"로 변경
-                              const isWoodFrame = item.productName?.includes("목재문틀") || 
-                                                item.productName?.includes("才") ||
-                                                item.productName?.includes("사이");
-                              return isWoodFrame ? "목재문틀" : item.productName;
-                            })()}
+                  {cart.map((entry) => {
+                    const id = entry.source === "estimate" ? entry.item.id : entry.item.id;
+                    return (
+                      <div
+                        key={id}
+                        className="p-5 bg-white rounded-2xl border border-gray-200 hover:border-indigo-300 hover:shadow-lg transition-all duration-300"
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex-1">
+                            {entry.source === "estimate" ? (
+                              <>
+                                <div className="font-medium text-base">
+                                  {(() => {
+                                    const item = entry.item;
+                                    const isWoodFrame = item.productName?.includes("목재문틀") || item.productName?.includes("才") || item.productName?.includes("사이");
+                                    return isWoodFrame ? "목재문틀" : item.productName;
+                                  })()}
+                                </div>
+                                {entry.item.categoryName && (
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    {entry.item.categoryName}
+                                    {entry.item.subCategoryName && ` > ${entry.item.subCategoryName}`}
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              <>
+                                <div className="font-medium text-base">{entry.item.name}</div>
+                                <div className="text-xs text-gray-500 mt-1">
+                                  {entry.item.category}
+                                  {entry.item.subCategory !== entry.item.category && ` > ${entry.item.subCategory}`}
+                                </div>
+                              </>
+                            )}
                           </div>
-                          {item.categoryName && (
-                            <div className="text-xs text-gray-500 mt-1">
-                              {item.categoryName}
-                              {item.subCategoryName && ` > ${item.subCategoryName}`}
-                            </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => removeCartItem(id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <div className="space-y-1 text-sm text-gray-600 mt-2">
+                          {entry.source === "estimate" ? (
+                            <>
+                              <div className="flex justify-between">
+                                <span>기본 단가</span>
+                                <span>{entry.item.unitPrice.toLocaleString()}원</span>
+                              </div>
+                              {entry.item.optionPrice !== 0 && (
+                                <div className="flex justify-between">
+                                  <span>추가 옵션</span>
+                                  <span>{entry.item.optionPrice! > 0 ? "+" : ""} {entry.item.optionPrice!.toLocaleString()}원</span>
+                                </div>
+                              )}
+                              {entry.item.selectedOptions && entry.item.selectedOptions.length > 0 && (
+                                <div className="text-xs text-gray-500 mt-1">옵션: {entry.item.selectedOptions.join(", ")}</div>
+                              )}
+                              <div className="flex justify-between">
+                                <span>수량</span>
+                                <span>{entry.item.quantity}개</span>
+                              </div>
+                              <div className="flex justify-between font-semibold text-gray-800 pt-2 border-t-2 border-gray-300 mt-2">
+                                <span>소계</span>
+                                <span>{(entry.item.finalPrice ?? entry.item.totalPrice).toLocaleString()}원</span>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="flex justify-between">
+                                <span>단가</span>
+                                <span>{entry.item.unitPrice.toLocaleString()}원</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>수량</span>
+                                <span>{entry.item.quantity}개</span>
+                              </div>
+                              {entry.item.margin && entry.item.marginAmount && (
+                                <div className="flex justify-between text-blue-700">
+                                  <span>회사 마진 ({entry.item.margin}%)</span>
+                                  <span>+{entry.item.marginAmount.toLocaleString()}원</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between font-semibold text-gray-800 pt-2 border-t-2 border-gray-300 mt-2">
+                                <span>소계</span>
+                                <span>{(entry.item.finalPrice ?? entry.item.totalPrice).toLocaleString()}원</span>
+                              </div>
+                            </>
                           )}
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => removeFromCart(item.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
                       </div>
-                      <div className="space-y-1 text-sm text-gray-600 mt-2">
-                        <div className="flex justify-between">
-                          <span>기본 단가</span>
-                          <span>{item.unitPrice.toLocaleString()}원</span>
-                        </div>
-                        {item.optionPrice !== 0 && (
-                          <div className="flex justify-between">
-                            <span>추가 옵션</span>
-                            <span>
-                              {item.optionPrice > 0 ? '+' : ''} {item.optionPrice.toLocaleString()}원
-                            </span>
-                          </div>
-                        )}
-                        {item.selectedOptions && item.selectedOptions.length > 0 && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            옵션: {item.selectedOptions.join(", ")}
-                          </div>
-                        )}
-                        <div className="flex justify-between">
-                          <span>수량</span>
-                          <span>{item.quantity}개</span>
-                        </div>
-                        <div className="flex justify-between font-semibold text-gray-800 pt-2 border-t-2 border-gray-300 mt-2">
-                          <span>소계</span>
-                          <span>{item.totalPrice.toLocaleString()}원</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <div className="pt-4 border-t-2 border-gray-400 mt-4">
@@ -2619,7 +2311,7 @@ export function CalculatorTab() {
                 <Button
                   variant="outline"
                   className="flex-1"
-                  onClick={() => setCart([])}
+                  onClick={clearCart}
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   장바구니 비우기
@@ -2627,7 +2319,7 @@ export function CalculatorTab() {
                 <Button
                   variant="outline"
                   className="flex-1"
-                  onClick={generatePDF}
+                  onClick={() => generatePDF()}
                 >
                   <FileDown className="w-4 h-4 mr-2" />
                   PDF로 변환
@@ -2647,6 +2339,7 @@ export function CalculatorTab() {
           )}
         </Card>
       </div>
+    </div>
     </div>
   );
 }

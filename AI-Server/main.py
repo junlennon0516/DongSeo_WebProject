@@ -7,6 +7,7 @@ import json
 import os
 import pymysql
 from pymysql.cursors import DictCursor
+import requests
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -32,9 +33,10 @@ app.add_middleware(
 # ==========================================
 class OrderItem(BaseModel):
     product_id: int = Field(description="Database ID of the product")
+    company_id: int = Field(description="Company ID (for Backend estimate API)", default=1)
     product_name: str = Field(description="Name of the product")
-    width: Optional[int] = Field(description="Width in mm", default=0)
-    height: Optional[int] = Field(description="Height in mm", default=0)
+    width: Optional[int] = Field(description="Width in mm (도어/창호용)", default=0)
+    height: Optional[int] = Field(description="Height in mm (도어/창호용)", default=0)
     quantity: int = Field(description="Quantity", default=1)
     unit_price: int = Field(description="Unit price per item", default=0)
     total_price: int = Field(description="Total price (unit_price * quantity)", default=0)
@@ -80,88 +82,118 @@ def get_db_connection():
     )
 
 # ==========================================
-# 3. DB 검색 함수 (실제 MySQL에서 검색)
+# 3. DB 검색 함수 (회사·규격·종류 조건 반영)
 # ==========================================
 def search_products_in_db(user_text: str) -> str:
     """
-    사용자 입력 텍스트에서 키워드를 추출하여 DB에서 제품 검색
-    제품 정보와 가격 정보를 함께 반환
+    사용자 입력에서 키워드를 추출하여 DB에서 제품 검색.
+    제품명(name), 회사(company), 규격(size), 카테고리(종류)에서 검색하며,
+    company_id를 포함해 Backend 견적 API 호출에 사용할 수 있게 반환.
     """
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # 키워드 추출 (간단한 방식: 공백으로 분리)
-        keywords = user_text.split()
+        keywords = [k.strip() for k in user_text.split() if len(k.strip()) > 1]
         
-        # 제품명에서 키워드 검색
-        search_conditions = []
-        search_params = []
+        base_select = """
+            SELECT 
+                p.id,
+                p.company_id,
+                p.name,
+                p.base_price,
+                p.size,
+                c.name as category_name,
+                comp.name as company_name
+            FROM products p
+            JOIN categories c ON p.category_id = c.id
+            JOIN companies comp ON p.company_id = comp.id
+        """
         
-        for keyword in keywords:
-            if len(keyword) > 1:  # 1글자는 제외
-                search_conditions.append("p.name LIKE %s")
-                search_params.append(f"%{keyword}%")
-        
-        if not search_conditions:
-            # 키워드가 없으면 모든 제품 반환 (제한)
-            query = """
-                SELECT 
-                    p.id,
-                    p.name,
-                    p.base_price,
-                    c.name as category_name,
-                    comp.name as company_name
-                FROM products p
-                JOIN categories c ON p.category_id = c.id
-                JOIN companies comp ON p.company_id = comp.id
-                LIMIT 20
-            """
-            cursor.execute(query)
+        if not keywords:
+            cursor.execute(base_select + " ORDER BY p.id LIMIT 50")
         else:
-            query = f"""
-                SELECT 
-                    p.id,
-                    p.name,
-                    p.base_price,
-                    c.name as category_name,
-                    comp.name as company_name
-                FROM products p
-                JOIN categories c ON p.category_id = c.id
-                JOIN companies comp ON p.company_id = comp.id
-                WHERE {' OR '.join(search_conditions)}
-                LIMIT 20
-            """
-            cursor.execute(query, search_params)
+            conditions = []
+            params = []
+            for kw in keywords:
+                conditions.append(
+                    "(p.name LIKE %s OR comp.name LIKE %s OR p.size LIKE %s "
+                    "OR c.name LIKE %s OR (p.description IS NOT NULL AND p.description LIKE %s))"
+                )
+                like_val = f"%{kw}%"
+                params.extend([like_val, like_val, like_val, like_val, like_val])
+            where_clause = " AND ".join(conditions)
+            cursor.execute(
+                base_select + " WHERE " + where_clause + " ORDER BY p.id LIMIT 50",
+                params
+            )
         
         products = cursor.fetchall()
         cursor.close()
         conn.close()
         
-        # 결과 포맷팅
         if not products:
             return "[검색 결과 없음]"
         
         result_lines = []
-        for product in products:
+        for p in products:
+            size_str = f", 규격: {p['size']}" if p.get('size') else ""
             result_lines.append(
-                f"[ID: {product['id']}] {product['name']} "
-                f"(기본가격: {product['base_price']:,}원, "
-                f"카테고리: {product['category_name']}, "
-                f"회사: {product['company_name']})"
+                f"[ID: {p['id']}] company_id: {p['company_id']} | {p['name']} | "
+                f"기본가격: {p['base_price'] or 0:,}원 | 카테고리: {p['category_name']} | "
+                f"회사: {p['company_name']}{size_str}"
             )
-        
         return "\n".join(result_lines)
         
     except Exception as e:
         print(f"DB 검색 오류: {e}")
-        # 오류 발생 시 기본 데이터 반환
-        return """
-        [ID: 51] ABS 민자 도어 (베이직) (기본가격: 100,000원, 카테고리: 도어, 회사: 쉐누)
-        [ID: 52] ABS 디자인 도어 (오르토/디엔) (기본가격: 150,000원, 카테고리: 도어, 회사: 쉐누)
-        [ID: 7] PVC 발포문틀 (110바) (기본가격: 50,000원, 카테고리: 문틀, 회사: 쉐누)
-        [ID: 20] 3연동 중문 (일반형) (기본가격: 300,000원, 카테고리: 중문, 회사: 쉐누)
-        """
+        return "[검색 결과 없음]"
+
+# ==========================================
+# 3-2. Backend 견적 계산 API 호출 (계산은 Backend에서 수행)
+# ==========================================
+def get_backend_base_url() -> str:
+    """Backend API 기본 URL (.env BACKEND_URL 또는 기본값)"""
+    return os.getenv("BACKEND_URL", "http://localhost:8080").rstrip("/")
+
+def call_backend_estimate(
+    company_id: int,
+    product_id: int,
+    quantity: int,
+    width: Optional[int] = None,
+    height: Optional[int] = None,
+    spec_name: Optional[str] = None,
+    type_name: Optional[str] = None,
+    option_ids: Optional[List[int]] = None,
+) -> Optional[dict]:
+    """
+    Backend POST /api/estimates/calculate 호출하여 견적 계산.
+    성공 시 { productName, unitPrice, optionPrice, quantity, totalPrice } 반환.
+    """
+    url = f"{get_backend_base_url()}/api/estimates/calculate"
+    payload = {
+        "companyId": company_id,
+        "productId": product_id,
+        "quantity": quantity,
+    }
+    if width is not None and width > 0:
+        payload["width"] = width
+    if height is not None and height > 0:
+        payload["height"] = height
+    if spec_name:
+        payload["specName"] = spec_name
+    if type_name:
+        payload["typeName"] = type_name
+    if option_ids:
+        payload["optionIds"] = option_ids
+    try:
+        r = requests.post(url, json=payload, timeout=10)
+        if r.status_code == 200:
+            return r.json()
+        return None
+    except Exception as e:
+        print(f"Backend 견적 API 호출 실패: {e}")
+        return None
 
 def get_product_price(product_id: int, width: Optional[int] = None, height: Optional[int] = None) -> int:
     """
@@ -228,39 +260,40 @@ def get_product_price(product_id: int, width: Optional[int] = None, height: Opti
 client = genai.Client()
 
 # ==========================================
-# 5. 프롬프트 템플릿 (여기서 프롬프트 튜닝 가능)
+# 5. 프롬프트 템플릿 (프롬프트 엔지니어링: 회사·규격·종류 조건 매칭)
 # ==========================================
 def build_system_prompt(context: str) -> str:
     """
-    시스템 프롬프트 생성 함수
-    프롬프트 튜닝은 이 함수를 수정하면 됩니다.
+    시스템 프롬프트: 가구/목재 등 조건(회사, 규격, 종류)을 입력받아
+    DB 제품 목록에서 맞는 항목을 찾고, Backend에서 계산하도록 항목만 추출.
     """
-    return f"""너는 건축 자재 견적을 위한 데이터 추출 전문가야.
-사용자의 요청을 분석하여 아래 제공된 [가능한 제품 목록]에서 가장 적절한 제품을 찾아서 매칭해줘.
+    return f"""너는 가구·목재·도어 등 건축 자재 견적을 위한 **데이터 추출 전문가**야.
 
-[가능한 제품 목록]
+[가능한 제품 목록] (각 줄: ID, company_id, 제품명, 가격, 카테고리, 회사, 규격)
 {context}
 
-[제약 사항]
-1. 반드시 위 목록에 있는 ID를 사용해.
-2. 단위는 mm로 변환해. (예: 900 -> 900, 0.9m -> 900)
-3. 수량은 숫자로 추출해.
-4. JSON 형식으로만 응답해. 다른 설명 없이 순수 JSON만 반환해.
-5. unit_price와 total_price는 0으로 설정해. (서버에서 계산함)
+[너의 역할]
+1. 사용자 요청에서 **회사(업체명)**, **규격(size, 예: 4*8*11.5, 3*6*9.5)**, **종류(합판/MDF/석고보드/도어 등)**, **수량**을 추출해.
+2. 위 목록에서 그 조건에 맞는 제품을 **정확히 하나씩** 골라 매칭해. 회사명·규격·제품명이 일치하는 것을 골라.
+3. 목재/합판/석고보드처럼 크기(가로세로)가 없으면 width, height는 0으로 둬.
+4. 도어/문틀/창호처럼 "900 x 2100" 등 크기가 있으면 mm 단위로 width, height에 넣어.
+5. **반드시** 각 항목에 목록에 나온 **company_id**를 그대로 넣어. (Backend 견적 계산에 필요)
+6. unit_price와 total_price는 0으로 설정해. (Backend에서 계산함)
+7. 응답은 **반드시 아래 JSON 형식만** 출력해. 다른 설명·마크다운 없이 순수 JSON만.
 
 [출력 형식]
-다음 JSON 형식을 정확히 따라야 해:
 {{
   "items": [
     {{
-      "product_id": 51,
-      "product_name": "ABS 민자 도어 (베이직)",
-      "width": 900,
-      "height": 2100,
-      "quantity": 5,
+      "product_id": 123,
+      "company_id": 2,
+      "product_name": "합판 (4*8*11.5)",
+      "width": 0,
+      "height": 0,
+      "quantity": 10,
       "unit_price": 0,
       "total_price": 0,
-      "description": "ABS 민자 도어 900에 2100으로 5개"
+      "description": "원우드 합판 4*8*11.5 10장"
     }}
   ]
 }}
@@ -366,13 +399,24 @@ def process_user_query(
     # 4. 응답 파싱 및 검증
     result = parse_llm_response(llm_response)
     
-    # 5. 가격 계산 및 적용
+    # 5. 가격 계산: Backend API 우선 호출, 실패 시 DB 직접 조회
     total_amount = 0
     for item in result.items:
-        # DB에서 실제 가격 조회
-        unit_price = get_product_price(item.product_id, item.width, item.height)
-        item.unit_price = unit_price
-        item.total_price = unit_price * item.quantity
+        company_id = getattr(item, "company_id", None) or 1
+        resp = call_backend_estimate(
+            company_id=company_id,
+            product_id=item.product_id,
+            quantity=item.quantity,
+            width=item.width if item.width else None,
+            height=item.height if item.height else None,
+        )
+        if resp and "unitPrice" in resp and "totalPrice" in resp:
+            item.unit_price = resp.get("unitPrice", 0)
+            item.total_price = resp.get("totalPrice", 0)
+        else:
+            unit_price = get_product_price(item.product_id, item.width, item.height)
+            item.unit_price = unit_price
+            item.total_price = unit_price * item.quantity
         total_amount += item.total_price
     
     result.total_amount = total_amount
@@ -390,10 +434,11 @@ def build_chat_system_prompt(estimate_data: Optional[dict] = None) -> str:
     Args:
         estimate_data: 견적 분석 결과 데이터 (있는 경우)
     """
-    base_prompt = """당신은 동서인테리어의 전문 상담사입니다. 창호, 도어, 중문 시공에 대한 견적 상담을 제공합니다.
+    base_prompt = """당신은 동서인테리어의 전문 상담사입니다. 창호, 도어, 중문, 가구, 목재(합판/MDF/석고보드 등) 견적 상담을 제공합니다.
 
 친절하고 전문적으로 답변하며, 고객의 요구사항을 정확히 파악하여 적절한 견적을 제시하세요.
-구체적인 견적이 필요하면 제품명, 규격(가로x세로), 수량을 명확히 안내해주세요.
+견적 요청 시 **회사(업체명)**, **제품 종류**(합판, MDF, 석고보드, 도어 등), **규격**(예: 4*8*11.5, 3*6*9.5), **수량**을 알려주시면 DB에서 맞는 제품을 찾아 Backend에서 계산한 정확한 가격을 안내합니다.
+도어/창호는 가로×세로(mm)와 수량을 명확히 안내해주세요.
 
 중요한 원칙:
 1. 항상 정확한 가격 정보를 제공하세요.

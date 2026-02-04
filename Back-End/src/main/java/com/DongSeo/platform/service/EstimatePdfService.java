@@ -14,7 +14,9 @@ import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 
 /**
@@ -41,14 +43,23 @@ public class EstimatePdfService {
 
     public byte[] generatePdf(EstimatePdfRequest req) throws IOException {
         File fontFile = fontResolver.getKoreanFontFile();
+        String fontPath = fontFile.getAbsolutePath();
+        if (!fontPath.startsWith("/") && !fontPath.matches("^[A-Za-z]:.*")) {
+            log.warn("PDF 폰트가 파일시스템 절대경로가 아님. 한글이 깨질 수 있음. 경로={}", fontPath);
+        } else {
+            log.debug("PDF 한글 폰트 (파일시스템 경로): {}", fontPath);
+        }
 
         try (PDDocument doc = new PDDocument()) {
-            PDType0Font font = PDType0Font.load(doc, fontFile);
+            PDType0Font font;
+            try (InputStream fontStream = new FileInputStream(fontFile)) {
+                font = PDType0Font.load(doc, fontStream, true);
+            }
 
             PDPage page = new PDPage(new PDRectangle(PAGE_W, PAGE_H));
-            doc.addPage(page);
+            doc.getDocumentCatalog().getPages().add(page);
 
-            try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
+            try (PDPageContentStream cs = new PDPageContentStream(doc, page, PDPageContentStream.AppendMode.APPEND, true)) {
                 float y = PAGE_H - MARGIN;
                 float fontSize = 10f;
                 float lh = LINE_HEIGHT_SMALL;
@@ -70,7 +81,7 @@ public class EstimatePdfService {
                 drawText(cs, font, fontSize, "작성일: " + nvl(req.getDateStr(), ""), MARGIN, y);
                 y -= LINE_HEIGHT;
 
-                cs.setStrokingColor(200, 200, 200);
+                cs.setStrokingColor(200f / 255f, 200f / 255f, 200f / 255f);
                 cs.moveTo(MARGIN, y);
                 cs.lineTo(PAGE_W - MARGIN, y);
                 cs.stroke();
@@ -91,7 +102,7 @@ public class EstimatePdfService {
                     }
                 }
 
-                cs.setStrokingColor(0, 0, 0);
+                cs.setStrokingColor(0f, 0f, 0f);
                 cs.moveTo(MARGIN, y);
                 cs.lineTo(PAGE_W - MARGIN, y);
                 cs.stroke();
@@ -194,7 +205,7 @@ public class EstimatePdfService {
         drawText(cs, font, fontSize, "최종 소계: " + formatNumber(item.getFinalTotal()) + "원", MARGIN + 14, y);
         y -= lh + 4;
 
-        cs.setStrokingColor(200, 200, 200);
+        cs.setStrokingColor(200f / 255f, 200f / 255f, 200f / 255f);
         cs.moveTo(MARGIN, y);
         cs.lineTo(PAGE_W - MARGIN, y);
         cs.stroke();

@@ -2,10 +2,24 @@
 
 ## 🚀 배포 환경 구성
 
+### ⚠️ www.totaldongseo.com 요청 흐름 (매우 중요)
+
+```
+브라우저 → DNS → Vercel (프론트)
+                → vercel.json rewrite
+                  → /api/*     → EC2:8080 (Spring)
+                  → /ai-api/*  → EC2:8000 (Python AI-Server)
+```
+
+- **도메인이 Vercel로 연결되어 있으면**, 요청은 **먼저 Vercel**로 갑니다.
+- **EC2 Nginx는 이 경로에 없습니다.** `/ai-api` 처리는 **Vercel rewrites**가 전부입니다.
+- 따라서 `/ai-api` 404·502·연결 오류는 **vercel.json**과 **EC2 8000 포트 개방**을 확인해야 합니다.
+
 ### 현재 배포 구조
-- **프론트엔드**: Vercel
-- **백엔드**: AWS EC2 (54.66.24.197:8080)
-- **프록시**: Vercel의 `vercel.json`을 통해 `/api/*` 요청을 EC2로 프록시
+- **프론트**: Vercel (www.totaldongseo.com DNS → Vercel)
+- **백엔드(Spring)**: EC2 **8080** — `/api/*`
+- **AI 서버(Python FastAPI)**: EC2 **8000** — `/analyze`, `/chat`
+- **프록시**: Vercel `vercel.json`에서 `/api/*` → 8080, `/ai-api/*` → **8000**
 
 ---
 
@@ -49,21 +63,52 @@
 
 ## 📋 설정 파일
 
-### 1. vercel.json
+### 1. vercel.json (최종본 — Vercel이 EC2로 프록시)
+
+**EC2_PUBLIC_IP**는 실제 퍼블릭 IP(예: 54.66.24.197)로 넣습니다.
+
 ```json
 {
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "http://54.66.24.197:8080/api/:path*"
+      "destination": "http://EC2_PUBLIC_IP:8080/api/:path*"
+    },
+    {
+      "source": "/ai-api/:path*",
+      "destination": "http://EC2_PUBLIC_IP:8000/:path*"
     }
   ]
 }
 ```
 
-이 설정으로 Vercel에 배포된 프론트엔드에서 `/api/*` 요청이 자동으로 EC2 서버로 프록시됩니다.
+- `/api/*` → Spring(8080)
+- `/ai-api/*` → Python AI-Server(8000). 요청 `/ai-api/chat` → EC2에서 `http://EC2:8000/chat` 로 전달됨.
+- **수정 후 반드시 Vercel 재배포** (git push 또는 Vercel 대시보드 Redeploy).
 
-### 2. API 설정 (src/config/api.ts)
+**EC2 Nginx**: 도메인이 Vercel로 가므로 **EC2 Nginx에서 /ai-api 설정은 불필요**. FastAPI는 8000 포트로만 떠 있으면 됨.
+
+---
+
+### 2. /ai-api는 Spring이 아니라 Python(8000)
+
+| 경로 | 대상 서버 | 포트 | 설명 |
+|------|-----------|------|------|
+| `/api/*` | Spring Boot | **8080** | 로그인, 견적, 제품, admin |
+| `/ai-api/*` | **Python FastAPI** (AI-Server) | **8000** | `/analyze`, `/chat` |
+
+- **Spring에는 `/chat`, `/analyze` 컨트롤러가 없습니다.**  
+  `curl http://localhost:8080/ai-api/chat` → 404 가 나오는 이유.
+- **실제 AI 엔드포인트**: Python `main.py` → `POST /chat`, `POST /analyze` (포트 **8000**).
+
+**도메인을 EC2로 직접 연결하는 경우에만** Nginx에서 /ai-api를 8000으로 보냅니다. (현재는 DNS → Vercel이므로 위 vercel.json만 맞으면 됨.)
+
+### 3. 프론트엔드 API 호출
+- **API(Spring)**: `fetch(\`${API_BASE_URL}/...\`)` → 프로덕션에서 `/api` → Vercel이 8080으로 프록시.
+- **AI**: `fetch('/ai-api/analyze', ...)`, `fetch('/ai-api/chat', ...)` (상대 경로) → Vercel이 8000으로 프록시.  
+  → `AIChatTab.tsx`에서 `import.meta.env.DEV ? 'http://localhost:8000' : '/ai-api'` 사용 중이면 그대로 두면 됨.
+
+### 4. API 설정 (src/config/api.ts)
 - **`VITE_API_BASE_URL`** 이 있으면 해당 값 사용 (Vercel env 권장)
 - 없으면:
   - 개발: `http://localhost:8080/api`
@@ -150,6 +195,23 @@ cors:
 1. 브라우저 개발자 도구 → Network 탭에서 실제 요청 URL 확인
 2. `/api/*` 요청이 올바르게 프록시되는지 확인
 
+### 문제: ROUTER_EXTERNAL_TARGET_CONNECTION_ERROR (Vercel)
+- **증상**: AI 요청 시 Vercel 에러. `ROUTER_EXTERNAL_TARGET_CONNECTION_ERROR`, syd1::... 등.
+- **의미**: **Vercel Edge Router**가 설정된 외부 타겟(EC2)에 **연결하지 못함**. Nginx/FastAPI/Spring 에러가 아님.
+- **해결**:
+  1. **vercel.json**에 `/ai-api/:path*` → `http://EC2_PUBLIC_IP:8000/:path*` 있는지 확인.
+  2. **EC2 보안 그룹**에서 **8000 포트 인바운드** 허용 (Source: Vercel IP 대역 또는 `0.0.0.0/0` 테스트용).
+  3. EC2에서 **Python AI-Server가 8000에서 실행 중**인지 확인: `curl http://127.0.0.1:8000/`.
+  4. **Vercel 재배포**: vercel.json 수정 후 `git push` 또는 Vercel 대시보드에서 Redeploy.
+
+### 문제: /ai-api/chat → 404 또는 502
+- **증상**: AI 채팅 요청 시 404 Not Found 또는 502 Bad Gateway.
+- **원인**: `/ai-api/*` 가 Spring(8080)으로 가고 있음. Spring에는 `/chat` 이 없음 → 404. 또는 Vercel이 EC2:8000에 연결 실패 → 502.
+- **해결**:
+  1. **도메인이 Vercel로 갈 때**: vercel.json에 `/ai-api/:path*` → `http://EC2_IP:8000/:path*` 있는지, EC2 8000 포트 개방·FastAPI 실행 여부 확인.
+  2. EC2에서 AI-Server 실행 확인: `curl http://127.0.0.1:8000/` → `{"status":"ok",...}`.
+  3. 로컬 경로 확인: `curl -X POST http://localhost:8000/chat -H "Content-Type: application/json" -d '{"messages":[{"role":"user","content":"hi"}]}'`.
+
 ### 문제: GET /api/admin/companies 403 (Forbidden)
 - **원인**: `/api/admin/**` 는 STAFF/ADMIN 로그인 필요. 프록시가 `Authorization` 헤더를 백엔드로 넘기지 않으면 403 발생.
 - **적용된 조치**: `GET /api/admin/companies` 는 인증 없이 허용 (회사 목록 드롭다운용). 회사 생성·수정·삭제 등 나머지 admin API는 로그인 필요.
@@ -165,10 +227,23 @@ location /api/ {
 }
 ```
 
+## 🔓 EC2 포트 최소 개방 (Vercel → EC2 연결용)
+
+**www.totaldongseo.com = DNS → Vercel** 이므로, Vercel이 EC2로 나가는 연결만 있으면 됩니다.
+
+| 포트 | 용도 | 보안 그룹 인바운드 |
+|------|------|---------------------|
+| **8080** | Spring API (`/api/*`) | 0.0.0.0/0 또는 Vercel IP (권장) |
+| **8000** | Python AI-Server (`/ai-api/*`) | 0.0.0.0/0 또는 Vercel IP (권장) |
+
+- **ROUTER_EXTERNAL_TARGET_CONNECTION_ERROR** 나오면 → EC2 보안 그룹에서 **8000** 인바운드 허용 여부를 먼저 확인.
+- EC2 내부 확인: `curl http://127.0.0.1:8000/` (AI), `curl http://127.0.0.1:8080/api/estimates/ping` (Spring).
+
 ## 📝 배포 체크리스트
 
-- [ ] `vercel.json`에 EC2 IP 주소가 올바르게 설정되어 있는지 확인
-- [ ] 백엔드 CORS 설정에 Vercel 도메인이 포함되어 있는지 확인
-- [ ] EC2 서버가 실행 중이고 8080 포트가 열려있는지 확인
-- [ ] 모든 API 호출이 `src/config/api.ts`의 `API_BASE_URL`을 사용하는지 확인
-- [ ] 하드코딩된 `localhost:8080`이 없는지 확인
+- [ ] `vercel.json`에 `/api/:path*` → EC2:8080, **`/ai-api/:path*` → EC2:8000** 둘 다 있는지 확인
+- [ ] EC2 보안 그룹: **8080, 8000** 인바운드 허용 (Vercel에서 접근 가능하도록)
+- [ ] EC2에서 Spring(8080), **Python AI-Server(8000)** 실행 중인지 확인
+- [ ] 백엔드 CORS 설정에 Vercel 도메인 포함 여부 확인
+- [ ] API 호출은 `API_BASE_URL` 사용, AI 호출은 프로덕션에서 `/ai-api` 사용
+- [ ] vercel.json 수정 후 **Vercel 재배포** (git push 또는 Redeploy)

@@ -43,10 +43,12 @@ ls /usr/share/fonts/truetype/nanum/
 
 ---
 
-## 4. 환경 변수 (선택)
+## 4. 환경 변수로 폰트 명시 (권장)
 
-기본값은 `/usr/share/fonts/truetype/nanum/NanumGothic.ttf` 입니다.  
-다른 경로를 쓰려면:
+**한글이 여전히 안 나올 때** — 코드에서 파일시스템 경로를 명시적으로 쓰도록 환경 변수를 설정하세요.
+
+- 브라우저 URL (`/NanumGothic-normal.js`) ❌ 사용하지 않음  
+- 파일 시스템 경로 (`/usr/share/fonts/...`) ⭕ 사용
 
 ```bash
 export PDF_FONT_PATH=/usr/share/fonts/truetype/nanum/NanumGothic.ttf
@@ -58,6 +60,8 @@ systemd 사용 시:
 [Service]
 Environment="PDF_FONT_PATH=/usr/share/fonts/truetype/nanum/NanumGothic.ttf"
 ```
+
+설정 후 백엔드 재시작. 로그에 `PDF 한글 폰트 사용 (명시 경로): /usr/share/fonts/...` 가 나오면 적용된 것입니다.
 
 ---
 

@@ -131,12 +131,18 @@ export function AIChatTab() {
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('AI 채팅 오류:', error);
-      
+      const isConnectionRefused = error instanceof TypeError && (error.message === 'Failed to fetch' || (error as Error).message?.includes('fetch'));
+      const is403 = error instanceof Error && error.message?.includes('403');
+      const hint = import.meta.env.DEV
+        ? ' (로컬: AI-Server 실행 여부 확인 — 터미널에서 `cd AI-Server && python main.py`)'
+        : is403
+          ? ' (서버에서 /ai-api 경로 허용 및 프록시 설정 확인)'
+          : '';
       const errorMessage: Message = {
         role: 'assistant',
-        content: '죄송합니다. 현재 AI 상담 서비스를 이용할 수 없습니다. 잠시 후 다시 시도해주시거나, 일반 견적 문의 탭을 이용해주세요.'
+        content: `죄송합니다. AI 상담 서버에 연결할 수 없습니다.${hint} 잠시 후 다시 시도하거나 일반 견적 탭을 이용해 주세요.`
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {

@@ -150,6 +150,21 @@ cors:
 1. 브라우저 개발자 도구 → Network 탭에서 실제 요청 URL 확인
 2. `/api/*` 요청이 올바르게 프록시되는지 확인
 
+### 문제: GET /api/admin/companies 403 (Forbidden)
+- **원인**: `/api/admin/**` 는 STAFF/ADMIN 로그인 필요. 프록시가 `Authorization` 헤더를 백엔드로 넘기지 않으면 403 발생.
+- **적용된 조치**: `GET /api/admin/companies` 는 인증 없이 허용 (회사 목록 드롭다운용). 회사 생성·수정·삭제 등 나머지 admin API는 로그인 필요.
+- **Nginx 사용 시** (EC2 앞단에 Nginx가 있으면) 아래처럼 `Authorization` 헤더를 반드시 전달해야 합니다:
+```nginx
+location /api/ {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header Authorization $http_authorization;  # JWT 전달 필수
+}
+```
+
 ## 📝 배포 체크리스트
 
 - [ ] `vercel.json`에 EC2 IP 주소가 올바르게 설정되어 있는지 확인

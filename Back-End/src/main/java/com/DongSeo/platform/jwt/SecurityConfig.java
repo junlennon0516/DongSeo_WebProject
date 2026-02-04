@@ -10,6 +10,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpMethod;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -39,6 +40,8 @@ public class SecurityConfig {
                         // API 엔드포인트
                         .requestMatchers("/api/auth/**", "/error").permitAll()
                         .requestMatchers("/api/estimates/**", "/api/products/**", "/api/categories/**", "/api/subcategories/**", "/api/options/**", "/api/variants/**", "/api/colors/**").permitAll()
+                        .requestMatchers("/ai-api/**").permitAll()  // AI 서버 프록시 경로 (인증 없이 통과)
+                        .requestMatchers(HttpMethod.GET, "/api/admin/companies").permitAll()  // 제품 추가 폼 회사 목록 (드롭다운용)
                         .requestMatchers("/api/admin/**").hasAnyRole("STAFF", "ADMIN")
                         // 나머지는 인증 필요
                         .anyRequest().authenticated()

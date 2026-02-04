@@ -24,7 +24,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
         // 0. 인증이 필요없는 경로는 바로 통과
         String path = request.getRequestURI();
-        if (path.startsWith("/api/auth/")) {
+        if (path.startsWith("/api/auth/") || path.startsWith("/ai-api/")) {
             filterChain.doFilter(request, response);
             return;
         }

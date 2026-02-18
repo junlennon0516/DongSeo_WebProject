@@ -2,19 +2,16 @@ package com.DongSeo.platform.service;
 
 import com.DongSeo.platform.dto.EstimatePdfItemDto;
 import com.DongSeo.platform.dto.EstimatePdfRequest;
-import com.DongSeo.platform.util.KoreanFontResolver;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDType0Font;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -23,16 +20,15 @@ import java.util.List;
  * 견적서 PDF 생성 서비스
  *
  * EC2 등 서버에서 한글이 깨지지 않으려면:
- * - 서버에 한글 폰트 설치 (fonts-nanum) 후 재부팅
- * - 절대경로로 폰트 지정 (KoreanFontResolver)
+ * - 프로젝트 resources/fonts/NanumGothic.ttf에 폰트 파일을 포함
+ * - ClassPathResource로 직접 로드하여 OS 환경과 무관하게 동작
  * - PDType0Font 로 embed
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class EstimatePdfService {
 
-    private final KoreanFontResolver fontResolver;
+    private static final String FONT_PATH = "fonts/NanumGothic.ttf";
 
     private static final float MARGIN = 56f;
     private static final float PAGE_W = 595f;
@@ -42,19 +38,9 @@ public class EstimatePdfService {
     private static final float LINE_HEIGHT_SMALL = 12f;
 
     public byte[] generatePdf(EstimatePdfRequest req) throws IOException {
-        File fontFile = fontResolver.getKoreanFontFile();
-        String fontPath = fontFile.getAbsolutePath();
-        if (!fontPath.startsWith("/") && !fontPath.matches("^[A-Za-z]:.*")) {
-            log.warn("PDF 폰트가 파일시스템 절대경로가 아님. 한글이 깨질 수 있음. 경로={}", fontPath);
-        } else {
-            log.debug("PDF 한글 폰트 (파일시스템 경로): {}", fontPath);
-        }
-
         try (PDDocument doc = new PDDocument()) {
-            PDType0Font font;
-            try (InputStream fontStream = new FileInputStream(fontFile)) {
-                font = PDType0Font.load(doc, fontStream, true);
-            }
+            // JAR 배포(EC2)에서는 getFile()/getPath() 사용 금지. 반드시 getInputStream()으로 읽기.
+            PDType0Font font = loadFont(doc);
 
             PDPage page = new PDPage(new PDRectangle(PAGE_W, PAGE_H));
             doc.getDocumentCatalog().getPages().add(page);
@@ -130,6 +116,24 @@ public class EstimatePdfService {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             doc.save(baos);
             return baos.toByteArray();
+        }
+    }
+
+    /**
+     * ClassPath에서 한글 폰트를 스트림으로 로드.
+     * JAR 배포(EC2)에서는 getFile()/getPath() 사용 시 FileNotFoundException 발생하므로 getInputStream()만 사용.
+     */
+    private PDType0Font loadFont(PDDocument document) throws IOException {
+        ClassPathResource resource = new ClassPathResource(FONT_PATH);
+        if (!resource.exists()) {
+            throw new IOException("폰트 파일을 찾을 수 없습니다. 경로: " + resource.getPath());
+        }
+        try (InputStream is = resource.getInputStream()) {
+            PDType0Font font = PDType0Font.load(document, is, true);
+            log.debug("PDF 한글 폰트 로드 성공 (ClassPathResource): {}", FONT_PATH);
+            return font;
+        } catch (IOException e) {
+            throw new IOException("폰트 로딩 실패: " + e.getMessage(), e);
         }
     }
 

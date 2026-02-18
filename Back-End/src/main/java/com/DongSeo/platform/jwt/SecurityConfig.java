@@ -36,7 +36,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // 정적 리소스 먼저 허용 (순서 중요!)
-                        .requestMatchers("/NanumGothic-normal.js", "/static/**", "/**/*.js", "/**/*.css", "/**/*.png", "/**/*.jpg", "/**/*.svg", "/**/*.ico", "/**/*.woff", "/**/*.ttf").permitAll()
+                        .requestMatchers("/static/**", "/**/*.js", "/**/*.css", "/**/*.png", "/**/*.jpg", "/**/*.svg", "/**/*.ico", "/**/*.woff", "/**/*.ttf").permitAll()
                         // API 엔드포인트
                         .requestMatchers("/api/auth/**", "/error").permitAll()
                         .requestMatchers("/api/estimates/**", "/api/products/**", "/api/categories/**", "/api/subcategories/**", "/api/options/**", "/api/variants/**", "/api/colors/**").permitAll()

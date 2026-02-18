@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useState } from "react";
 import { toast } from "sonner";
 import { logger } from "../utils/logger";
-import { getFontUrl } from "../config/api";
+import { NANUM_GOTHIC_BASE64, isFontLoaded } from "../assets/fonts/nanumGothicBase64";
 import type { CartItem, WoodProduct, UnifiedCartItem } from "../types/calculator";
 
 interface CartContextValue {
@@ -94,38 +94,27 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const { default: jsPDF } = await import("jspdf");
       const doc = new jsPDF("p", "mm", "a4");
 
+      // Base64로 인코딩된 폰트를 직접 사용 (서버 환경과 무관하게 동작)
       let fontLoaded = false;
-      try {
-        const fontUrl = getFontUrl();
-        const fontResponse = await fetch(fontUrl);
-        if (fontResponse.ok) {
-          const fontText = await fontResponse.text();
-          let fontBase64: string | null = null;
-          const base64Match1 = fontText.match(/var\s+font\s*=\s*['"]([^'"]+)['"]/);
-          if (base64Match1?.[1]) fontBase64 = base64Match1[1];
-          else {
-            const base64Match2 = fontText.match(/export\s+default\s+['"]([^'"]+)['"]/);
-            if (base64Match2?.[1]) fontBase64 = base64Match2[1];
-            else {
-              const trimmed = fontText.trim().replace(/\s/g, "").replace(/\n/g, "");
-              if (trimmed.length > 1000 && /^[A-Za-z0-9+/=]+$/.test(trimmed)) fontBase64 = trimmed;
-            }
-          }
-          if (fontBase64) {
-            doc.addFileToVFS("NanumGothic-normal.ttf", fontBase64);
-            doc.addFont("NanumGothic-normal.ttf", "NanumGothic", "normal");
-            fontLoaded = true;
-          }
-        }
-      } catch (e) {
-        logger.error("폰트 등록 실패:", e);
-      }
-      if (fontLoaded) {
+      if (isFontLoaded()) {
         try {
+          // 1. 가상 파일 시스템(VFS)에 폰트 파일 추가
+          doc.addFileToVFS("NanumGothic.ttf", NANUM_GOTHIC_BASE64);
+          
+          // 2. 폰트 등록 (이름, 스타일)
+          doc.addFont("NanumGothic.ttf", "NanumGothic", "normal");
+          
+          // 3. 폰트 지정
           doc.setFont("NanumGothic", "normal");
-        } catch {
+          fontLoaded = true;
+          logger.info("PDF 한글 폰트 로드 성공 (Base64)");
+        } catch (e) {
+          logger.error("폰트 등록 실패:", e);
           fontLoaded = false;
         }
+      } else {
+        logger.warn("PDF 한글 폰트 Base64가 설정되지 않았습니다. 한글이 깨질 수 있습니다.");
+        logger.warn("src/assets/fonts/nanumGothicBase64.ts 파일에 NanumGothic.ttf의 Base64 문자열을 추가해주세요.");
       }
 
       const margin = 20;

@@ -20,6 +20,7 @@ export interface ExtendedEstimateResponse extends EstimateResponse {
  */
 export interface CartItem extends ExtendedEstimateResponse {
   id: string; // 고유 ID
+  companyId?: number; // 견적 회사 (1: 쉐누, 11: 우딘 등) - PDF 회사별 구분용
   width?: string; // 가로폭
   height?: string; // 세로높이
   specName?: string; // 규격명
@@ -30,7 +31,7 @@ export interface CartItem extends ExtendedEstimateResponse {
 }
 
 /**
- * 목재 자재 장바구니 항목 타입
+ * 목재 자재 장바구니 항목 타입 (에스와이보드, KCC 인천 영업소, 우드 뱅크, 우드랜드 등 회사별 구분)
  */
 export interface WoodProduct {
   id: string;
@@ -43,11 +44,31 @@ export interface WoodProduct {
   margin?: string;
   marginAmount?: number;
   finalPrice?: number;
+  /** 목재 공급 회사명 (에스와이보드, KCC 인천 영업소, 우드 뱅크, 우드랜드 등) */
+  companyName?: string;
 }
 
 /**
- * 통합 장바구니 항목 (도어/문틀 + 목재)
+ * 우딘 견적 장바구니 항목 타입
+ */
+export interface WoodinProduct {
+  id: string;
+  name: string;
+  category: string;
+  subCategory: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  margin?: string;
+  marginAmount?: number;
+  finalPrice?: number;
+  companyName?: string;
+}
+
+/**
+ * 통합 장바구니 항목 (쉐누 도어/문틀 + 우드랜드 목재 + 우딘)
  */
 export type UnifiedCartItem =
   | { source: "estimate"; item: CartItem }
-  | { source: "wood"; item: WoodProduct };
+  | { source: "wood"; item: WoodProduct }
+  | { source: "woodin"; item: WoodinProduct };

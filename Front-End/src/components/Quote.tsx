@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { CartProvider } from '../contexts/CartContext';
 import { CalculatorTab } from './Quote/CalculatorTab';
+import { UdineTab } from './Quote/UdineTab';
 import { WoodTab } from './Quote/WoodTab';
 import { AIChatTab } from './Quote/AIChatTab';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
-import { Calculator, Package, Bot } from 'lucide-react';
+import { Calculator, Building2, Package, Bot } from 'lucide-react';
 
 export function Quote() {
   const [activeTab, setActiveTab] = useState('calculator');
@@ -54,19 +55,26 @@ export function Quote() {
             <TabsList className="mb-6 bg-[#FFF2C6] p-1.5 rounded-xl">
               <TabsTrigger value="calculator" className="flex items-center gap-2 data-[state=active]:bg-[#8CA9FF] data-[state=active]:text-white data-[state=active]:shadow-md">
                 <Calculator className="w-4 h-4" />
-                도어/문틀 견적
+                쉐누
+              </TabsTrigger>
+              <TabsTrigger value="woodin" className="flex items-center gap-2 data-[state=active]:bg-[#8CA9FF] data-[state=active]:text-white data-[state=active]:shadow-md">
+                <Building2 className="w-4 h-4" />
+                우딘
               </TabsTrigger>
               <TabsTrigger value="wood" className="flex items-center gap-2 data-[state=active]:bg-[#8CA9FF] data-[state=active]:text-white data-[state=active]:shadow-md">
                 <Package className="w-4 h-4" />
-                목재 자재
+                목재
               </TabsTrigger>
               <TabsTrigger value="ai" className="flex items-center gap-2 data-[state=active]:bg-[#8CA9FF] data-[state=active]:text-white data-[state=active]:shadow-md">
                 <Bot className="w-4 h-4" />
-                AI 상담
+                AI
               </TabsTrigger>
             </TabsList>
             <TabsContent value="calculator">
               <CalculatorTab />
+            </TabsContent>
+            <TabsContent value="woodin">
+              <UdineTab />
             </TabsContent>
             <TabsContent value="wood">
               <WoodTab />

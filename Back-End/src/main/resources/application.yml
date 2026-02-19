@@ -56,6 +56,13 @@ spring:
     init:
       mode: always
       schema-locations: classpath:fix_schema.sql
-      data-locations: classpath:data.sql
+      # data.sql 이후 우딘(WOODIN) 카테고리/제품 자동 로드 (01 → 07 → 08 → 09 → 10)
+      data-locations:
+        - classpath:data.sql
+        - classpath:woodin/01_woodin_setup.sql
+        - classpath:woodin/07_woodin_foam_frame.sql
+        - classpath:woodin/08_woodin_slim_frames.sql
+        - classpath:woodin/09_woodin_wood_frame_gird.sql
+        - classpath:woodin/10_woodin_frame_window.sql
       separator: ;
       continue-on-error: true

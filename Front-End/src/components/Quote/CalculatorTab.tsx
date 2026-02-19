@@ -22,7 +22,7 @@ import { ScrollArea } from "../ui/scroll-area";
 import { Calculator, ShoppingCart, RefreshCw, Loader2, Plus, Trash2, CreditCard, FileDown, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { logger } from "../../utils/logger";
-import { COMPANY_ID, DEFAULT_TYPE_NAME, DEFAULT_QUANTITY, DEFAULT_ABS_DOOR_WIDTH, DEFAULT_ABS_DOOR_HEIGHT } from "../../constants/calculator";
+import { COMPANY_ID, CHENOUS_EXCLUDE_CATEGORY_NAMES, DEFAULT_TYPE_NAME, DEFAULT_QUANTITY, DEFAULT_ABS_DOOR_WIDTH, DEFAULT_ABS_DOOR_HEIGHT } from "../../constants/calculator";
 import type { ExtendedEstimateResponse, CartItem } from "../../types/calculator";
 import { useCart } from "../../contexts/CartContext";
 import {
@@ -259,9 +259,12 @@ export function CalculatorTab() {
       setIsLoadingData(true);
       const data = await fetchCategories(COMPANY_ID);
       logger.debug("로드된 메인 카테고리 데이터:", data);
-      logger.info("메인 카테고리 개수:", data.length);
-      if (data && data.length > 0) {
-        setCategories(data);
+      const filtered = (data || []).filter(
+        (c) => c.name && !CHENOUS_EXCLUDE_CATEGORY_NAMES.some((ex) => c.name!.includes(ex))
+      );
+      logger.info("메인 카테고리 개수 (필터 후):", filtered.length);
+      if (filtered.length > 0) {
+        setCategories(filtered);
         logger.debug("메인 카테고리 상태 업데이트 완료");
       } else {
         logger.warn("메인 카테고리 데이터가 비어있습니다.");
@@ -426,6 +429,7 @@ export function CalculatorTab() {
     const cartItem: CartItem = {
       ...result,
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9), // 고유 ID 생성
+      companyId: COMPANY_ID,
       categoryName: result.categoryName || "",
       subCategoryName: result.subCategoryName || "",
       selectedOptions: result.selectedOptions || [],
@@ -2222,6 +2226,9 @@ export function CalculatorTab() {
                               </>
                             ) : (
                               <>
+                                {"companyName" in entry.item && entry.item.companyName && (
+                                  <div className="text-xs text-indigo-600 font-medium mb-0.5">{entry.item.companyName}</div>
+                                )}
                                 <div className="font-medium text-base">{entry.item.name}</div>
                                 <div className="text-xs text-gray-500 mt-1">
                                   {entry.item.category}

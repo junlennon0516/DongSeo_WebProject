@@ -10,7 +10,7 @@ import { Button } from "../ui/button";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { ScrollArea } from "../ui/scroll-area";
-import { ShoppingCart, Loader2, Plus, Trash2, Search, X, Calculator, RefreshCw, FileDown, CreditCard } from "lucide-react";
+import { ShoppingCart, Loader2, Plus, Trash2, Search, X, Calculator, RefreshCw, FileDown, CreditCard, Package } from "lucide-react";
 import { toast } from "sonner";
 import { logger } from "../../utils/logger";
 import {
@@ -36,6 +36,12 @@ interface WoodEstimate {
   margin?: string;
   marginAmount?: number;
   finalPrice?: number;
+}
+
+/** 목재 탭에서는 API의 '쉐누' 회사명을 '우드랜드'로 표시 */
+function woodCompanyDisplayName(name: string | undefined): string {
+  if (!name) return "";
+  return name === "쉐누" ? "우드랜드" : name;
 }
 
 export function WoodTab() {
@@ -234,6 +240,10 @@ export function WoodTab() {
       return;
     }
 
+    const product = products.find((p) => p.id.toString() === selectedProduct);
+    const companyDisplayName =
+      product?.companyName ? woodCompanyDisplayName(product.companyName) || product.companyName : "기타";
+
     const cartItem: WoodProduct = {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
       name: result.productName,
@@ -245,6 +255,7 @@ export function WoodTab() {
       margin: result.margin,
       marginAmount: result.marginAmount,
       finalPrice: result.finalPrice,
+      companyName: companyDisplayName,
     };
 
     addWoodItem(cartItem);
@@ -267,60 +278,54 @@ export function WoodTab() {
   });
 
   return (
-    <div className="space-y-6">
-      {/* 목재 제품 검색 - 카테고리 선택 위 */}
-      <Card className="p-4 rounded-2xl bg-white/80 shadow-md">
-        <div className="flex flex-wrap gap-2 items-center">
-          <Search className="w-5 h-5 text-indigo-600" />
+    <div className="space-y-5">
+      {/* 상단 검색 - 쇼핑몰 스타일 */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <div className="relative flex-1 min-w-[200px] max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             placeholder="목재 제품명으로 검색..."
             value={woodSearchKeyword}
             onChange={(e) => setWoodSearchKeyword(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleWoodProductSearch()}
-            className="max-w-xs"
+            className="pl-9 bg-white border-gray-200 rounded-lg"
           />
-          <Button onClick={handleWoodProductSearch} disabled={woodSearchLoading} size="sm">
-            {woodSearchLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4 mr-1" />}
-            검색
-          </Button>
         </div>
-        {woodSearchResults.length > 0 && (
-          <ul className="mt-3 border-t pt-3 space-y-1 max-h-48 overflow-y-auto">
+        <Button onClick={handleWoodProductSearch} disabled={woodSearchLoading} size="sm" variant="outline" className="rounded-lg">
+          {woodSearchLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4 mr-1" />}
+          검색
+        </Button>
+      </div>
+      {woodSearchResults.length > 0 && (
+        <Card className="p-3 rounded-lg bg-white border border-gray-200">
+          <ul className="space-y-0.5 max-h-40 overflow-y-auto">
             {woodSearchResults.map((item) => (
               <li key={`${item.productId}-${item.categoryId}`}>
                 <button
                   type="button"
                   onClick={() => handleWoodSearchResultClick(item)}
-                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-indigo-50 text-sm flex flex-col gap-0.5"
+                  className="w-full text-left px-3 py-2 rounded hover:bg-gray-100 text-sm flex flex-col gap-0.5"
                 >
-                  <span className="font-medium">{item.productName}</span>
+                  <span className="font-medium text-gray-800">{item.productName}</span>
                   <span className="text-gray-500 text-xs">
-                    {[item.companyName, item.categoryName, item.size].filter(Boolean).join(" · ")}
+                    {[woodCompanyDisplayName(item.companyName), item.categoryName, item.size].filter(Boolean).join(" · ")}
                   </span>
                 </button>
               </li>
             ))}
           </ul>
-        )}
-      </Card>
+        </Card>
+      )}
 
-    <div className="grid lg:grid-cols-3 gap-6">
-      {/* 좌측: 카테고리 및 제품 선택 */}
-      <Card className="lg:col-span-2 p-8 rounded-3xl bg-gradient-to-br from-white to-slate-50/50 shadow-xl shadow-indigo-500/5">
-        <h3 className="mb-8 flex items-center gap-3 text-2xl font-bold">
-          <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 via-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
-            <ShoppingCart className="w-6 h-6 text-white" />
-          </div>
-          <span className="bg-gradient-to-r from-gray-900 via-indigo-700 to-gray-900 bg-clip-text text-transparent">
-            목재 자재 선택
-          </span>
-        </h3>
-
-        <div className="space-y-6">
-          {/* 카테고리 선택 */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>메인 카테고리</Label>
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* 좌측: 쇼핑몰 스타일 상품 그리드 */}
+        <div className="lg:col-span-2 space-y-4">
+          {/* 섹션 타이틀 + 카테고리 필터 */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <h3 className="text-xl font-bold text-gray-800">
+              목재 자재
+            </h3>
+            <div className="flex flex-wrap gap-2 items-center">
               <select
                 value={selectedCategory}
                 onChange={(e) => {
@@ -328,176 +333,170 @@ export function WoodTab() {
                   setSelectedSubCategory("");
                   setProducts([]);
                 }}
-                className="w-full px-3 py-2 border border-gray-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="px-3 py-2 border border-gray-200 rounded-lg bg-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 disabled={isLoading}
               >
-                <option value="">카테고리 선택</option>
+                <option value="">메인 카테고리</option>
                 {categories.map((category) => (
                   <option key={category.id} value={category.id.toString()}>
                     {category.name}
                   </option>
                 ))}
               </select>
-            </div>
-
-            {/* 세부 카테고리 선택 */}
-            {selectedCategory && (
-              <div className="space-y-2">
-                <Label>세부 카테고리</Label>
+              {selectedCategory && (
                 <select
                   value={selectedSubCategory}
                   onChange={(e) => {
                     setSelectedSubCategory(e.target.value);
                     setProducts([]);
                   }}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="px-3 py-2 border border-gray-200 rounded-lg bg-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   disabled={!selectedCategory || isLoading}
                 >
-                  <option value="">세부 카테고리 선택</option>
+                  <option value="">세부 카테고리</option>
                   {subCategories.map((subCategory) => (
                     <option key={subCategory.id} value={subCategory.id.toString()}>
                       {subCategory.name}
                     </option>
                   ))}
                 </select>
-              </div>
-            )}
+              )}
+              {products.length > 0 && (
+                <div className="relative flex-1 min-w-[120px] max-w-[180px]">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                  <Input
+                    placeholder="제품명 검색..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-8 h-9 text-sm bg-white border-gray-200 rounded-lg"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* 검색 */}
-          {products.length > 0 && (
-            <div className="space-y-2">
-              <Label>제품 검색</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="제품명으로 검색..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 bg-slate-50 border-gray-200"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* 제품 목록 */}
+          {/* 상품 그리드 (쇼핑몰 갤러리형) */}
           {isLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+            <div className="flex items-center justify-center py-24 rounded-xl border border-gray-200 bg-gray-50/50">
+              <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
             </div>
           ) : filteredProducts.length > 0 ? (
-            <ScrollArea className="h-[400px] pr-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredProducts.map((product) => (
-                  <Card
-                    key={product.id}
-                    className={`p-4 border transition-all cursor-pointer ${
-                      selectedProduct === product.id.toString()
-                        ? "border-indigo-300 bg-indigo-50"
-                        : "border-gray-200 hover:border-indigo-300 bg-white"
-                    }`}
-                    onClick={() => setSelectedProduct(product.id.toString())}
-                  >
-                    <div className="space-y-2">
-                      {product.companyName && (
-                        <p className="text-xs font-medium text-indigo-600 uppercase tracking-wide">{product.companyName}</p>
-                      )}
-                      <h4 className="font-semibold text-lg">{product.name}</h4>
-                      {(product.size || product.description) && (
-                        <p className="text-sm text-gray-600">
-                          {[product.size, product.description].filter(Boolean).join(" · ")}
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                {filteredProducts.map((product) => {
+                  const isSelected = selectedProduct === product.id.toString();
+                  return (
+                    <Card
+                      key={product.id}
+                      className={`overflow-hidden border transition-all cursor-pointer bg-white ${
+                        isSelected
+                          ? "ring-2 ring-indigo-500 border-indigo-500 shadow-md"
+                          : "border-gray-200 hover:border-gray-300 hover:shadow-sm"
+                      }`}
+                      onClick={() => setSelectedProduct(product.id.toString())}
+                    >
+                      {/* 상품 이미지 영역 (플레이스홀더) */}
+                      <div className="aspect-square bg-gray-100 flex items-center justify-center">
+                        <Package className="w-10 h-10 text-gray-400" />
+                      </div>
+                      <div className="p-3 space-y-1">
+                        {product.companyName && (
+                          <p className="text-xs text-gray-500 truncate">{woodCompanyDisplayName(product.companyName)}</p>
+                        )}
+                        <h4 className="font-semibold text-gray-900 text-sm line-clamp-2 min-h-[2.5rem]">
+                          {product.name}
+                        </h4>
+                        {(product.size || product.description) && (
+                          <p className="text-xs text-gray-500 line-clamp-3 break-words">
+                            {[product.size, product.description].filter(Boolean).join(" · ")}
+                          </p>
+                        )}
+                        <p className="font-bold text-gray-900 pt-1">
+                          {product.basePrice != null ? `${product.basePrice.toLocaleString()}원` : "-"}
+                        </p>
+                        {isSelected && (
+                          <p className="text-xs font-medium text-indigo-600">선택됨</p>
+                        )}
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+
+              {/* 선택 시: 선택 제품 정보 + 수량·마진·견적 산출 */}
+              {selectedProduct && (() => {
+                const selected = filteredProducts.find((p) => p.id.toString() === selectedProduct);
+                return selected ? (
+                  <Card className="p-4 bg-gray-50 border-gray-200 rounded-xl space-y-4">
+                    <div className="pb-3 border-b border-gray-200">
+                      <p className="text-xs text-gray-500 mb-0.5">
+                        {woodCompanyDisplayName(selected.companyName) || "우드랜드"}
+                      </p>
+                      <p className="font-semibold text-gray-900">{selected.name}</p>
+                      {(selected.size || selected.description) && (
+                        <p className="text-sm text-gray-600 break-words mt-1">
+                          {[selected.size, selected.description].filter(Boolean).join(" · ")}
                         </p>
                       )}
-                      <div className="flex justify-between items-center pt-2">
-                        <span className="text-indigo-700 font-bold text-lg">
-                          {product.basePrice?.toLocaleString()}원
-                        </span>
+                    </div>
+                    <div className="flex flex-wrap items-end gap-4">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-gray-600">수량</Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          value={quantity}
+                          onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                          className="w-24 h-9 bg-white border-gray-200 rounded-lg"
+                        />
                       </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-gray-600">회사 마진 (%)</Label>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          value={margin}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            if (v === "" || (!isNaN(Number(v)) && Number(v) >= 0)) setMargin(v);
+                          }}
+                          className="w-20 h-9 bg-white border-gray-200 rounded-lg"
+                          min="0"
+                          step="0.1"
+                        />
+                      </div>
+                      <Button
+                        className="h-9 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium"
+                        onClick={handleCalculate}
+                        disabled={isLoading || !selectedProduct}
+                      >
+                        {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Calculator className="w-4 h-4 mr-1" />}
+                        견적 산출
+                      </Button>
                     </div>
                   </Card>
-                ))}
-              </div>
-            </ScrollArea>
+                ) : null;
+              })()}
+            </>
           ) : selectedCategory ? (
-            <div className="text-center py-20 text-gray-400">
-              <p>제품이 없습니다.</p>
+            <div className="text-center py-24 rounded-xl border border-gray-200 bg-gray-50/50 text-gray-500">
+              해당 카테고리에 등록된 제품이 없습니다.
             </div>
           ) : (
-            <div className="text-center py-20 text-gray-400">
-              <p>카테고리를 선택해주세요.</p>
+            <div className="text-center py-24 rounded-xl border border-dashed border-gray-200 bg-gray-50/30 text-gray-400">
+              메인 카테고리를 선택하면 제품 목록이 표시됩니다.
             </div>
           )}
-
-          {/* 수량 및 마진 입력 */}
-          {selectedProduct && (
-            <>
-              {/* 회사 마진 입력 */}
-              <div className="space-y-2 p-4 bg-indigo-50 rounded-xl">
-                <Label className="text-base font-semibold text-blue-900">회사 마진 설정</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    placeholder="예: 10 (10% 마진)"
-                    value={margin}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (value === "" || (!isNaN(Number(value)) && Number(value) >= 0)) {
-                        setMargin(value);
-                      }
-                    }}
-                    className="bg-white max-w-[200px]"
-                    min="0"
-                    step="0.1"
-                  />
-                  <span className="text-gray-600 font-medium">%</span>
-                  {margin && margin.trim() !== "" && !isNaN(Number(margin)) && Number(margin) > 0 && (
-                    <span className="text-sm text-blue-700 font-medium">
-                      (마진 적용 시 {Number(margin)}% 추가)
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  * 마진은 계산된 최종 가격에 적용됩니다. 여러 견적에 동일하게 적용됩니다.
-                </p>
-              </div>
-
-              {/* 수량 및 계산 버튼 */}
-              <div className="flex items-end gap-4">
-                <div className="space-y-2 w-24">
-                  <Label>수량</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={quantity}
-                    onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                    className="bg-white border-gray-200"
-                  />
-                </div>
-                <Button
-                  className="flex-1 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 h-12 text-white shadow-lg shadow-indigo-500/30 hover:shadow-xl transition-all duration-300 hover:scale-105 rounded-xl font-semibold"
-                  onClick={handleCalculate}
-                  disabled={isLoading || !selectedProduct}
-                >
-                  {isLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  ) : (
-                    <Calculator className="w-4 h-4 mr-2" />
-                  )}
-                  견적 산출하기
-                </Button>
-              </div>
-            </>
-          )}
         </div>
-      </Card>
 
       {/* 우측: 예상 견적서 및 장바구니 */}
       <div className="space-y-6">
@@ -636,6 +635,11 @@ export function WoodTab() {
                                 </>
                               ) : (
                                 <>
+                                  {(entry.item as WoodProduct).companyName && (
+                                    <div className="text-xs text-indigo-600 font-medium mb-0.5">
+                                      {(entry.item as WoodProduct).companyName}
+                                    </div>
+                                  )}
                                   <div className="font-medium text-base">{entry.item.name}</div>
                                   <div className="text-xs text-gray-500 mt-1">
                                     {entry.item.category}

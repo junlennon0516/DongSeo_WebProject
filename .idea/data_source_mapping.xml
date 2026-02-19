@@ -8,5 +8,15 @@
     <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/fix_schema.sql" value="418039ce-2e10-4919-ab30-e2c8ddd4a952" />
     <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/fix_schema_simple.sql" value="418039ce-2e10-4919-ab30-e2c8ddd4a952" />
     <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/scheme.sql" value="418039ce-2e10-4919-ab30-e2c8ddd4a952" />
+    <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/woodin/01_woodin_setup.sql" value="418039ce-2e10-4919-ab30-e2c8ddd4a952" />
+    <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/woodin/02_woodin_ps_molding.sql" value="418039ce-2e10-4919-ab30-e2c8ddd4a952" />
+    <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/woodin/03_woodin_wayne_molding.sql" value="418039ce-2e10-4919-ab30-e2c8ddd4a952" />
+    <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/woodin/04_woodin_al_pvc_molding.sql" value="418039ce-2e10-4919-ab30-e2c8ddd4a952" />
+    <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/woodin/05_woodin_fire_rapping.sql" value="418039ce-2e10-4919-ab30-e2c8ddd4a952" />
+    <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/woodin/06_woodin_rapping.sql" value="418039ce-2e10-4919-ab30-e2c8ddd4a952" />
+    <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/woodin/07_woodin_foam_frame.sql" value="418039ce-2e10-4919-ab30-e2c8ddd4a952" />
+    <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/woodin/08_woodin_slim_frames.sql" value="418039ce-2e10-4919-ab30-e2c8ddd4a952" />
+    <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/woodin/09_woodin_wood_frame_gird.sql" value="418039ce-2e10-4919-ab30-e2c8ddd4a952" />
+    <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/woodin/10_woodin_frame_window.sql" value="418039ce-2e10-4919-ab30-e2c8ddd4a952" />
   </component>
 </project>

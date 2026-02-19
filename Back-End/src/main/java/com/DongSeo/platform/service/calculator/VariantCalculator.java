@@ -15,7 +15,8 @@ public class VariantCalculator implements PriceCalculator {
 
     @Override
     public boolean supports(String categoryCode){
-        return "FRAME".equals(categoryCode) || "MOLDING".equals(categoryCode) || "FILM".equals(categoryCode) || "INTERLOCK".equals(categoryCode);
+        return "FRAME".equals(categoryCode) || "MOLDING".equals(categoryCode) || "FILM".equals(categoryCode) || "INTERLOCK".equals(categoryCode)
+            || "FOAM_FRAME".equals(categoryCode) || "SLIM_FRAME".equals(categoryCode) || "WOOD_FRAME_GIRD".equals(categoryCode) || "FRAME_WINDOW".equals(categoryCode);
     }
 
     @Override

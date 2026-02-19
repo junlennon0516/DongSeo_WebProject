@@ -2,12 +2,20 @@ import React, { createContext, useCallback, useContext, useState } from "react";
 import { toast } from "sonner";
 import { logger } from "../utils/logger";
 import { NANUM_GOTHIC_BASE64, isFontLoaded } from "../assets/fonts/nanumGothicBase64";
-import type { CartItem, WoodProduct, UnifiedCartItem } from "../types/calculator";
+import type { CartItem, WoodProduct, WoodinProduct, UnifiedCartItem } from "../types/calculator";
+import { WOODIN_COMPANY_ID } from "../constants/calculator";
+
+function getWoodCompanyName(entry: UnifiedCartItem): string {
+  if (entry.source !== "wood" && entry.source !== "woodin") return "";
+  const name = entry.item.companyName?.trim();
+  return name || "회사 미지정";
+}
 
 interface CartContextValue {
   cart: UnifiedCartItem[];
   addEstimateItem: (item: CartItem) => void;
   addWoodItem: (item: WoodProduct) => void;
+  addUdineItem: (item: WoodinProduct) => void;
   removeCartItem: (id: string) => void;
   updateWoodItemQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
@@ -17,14 +25,18 @@ interface CartContextValue {
 
 const CartContext = createContext<CartContextValue | null>(null);
 
+/** PDF 회사별 섹션 라벨 */
+const COMPANY_LABELS: Record<UnifiedCartItem["source"], string> = {
+  estimate: "쉐누",
+  wood: "우드랜드",
+  woodin: "우딘",
+};
+
 function getItemId(entry: UnifiedCartItem): string {
-  return entry.source === "estimate" ? entry.item.id : entry.item.id;
+  return entry.item.id;
 }
 
 function getItemFinalPrice(entry: UnifiedCartItem): number {
-  if (entry.source === "estimate") {
-    return entry.item.finalPrice ?? entry.item.totalPrice ?? 0;
-  }
   return entry.item.finalPrice ?? entry.item.totalPrice ?? 0;
 }
 
@@ -38,6 +50,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addWoodItem = useCallback((item: WoodProduct) => {
     setCart((prev) => [...prev, { source: "wood", item }]);
+    toast.success("장바구니에 추가되었습니다.");
+  }, []);
+
+  const addUdineItem = useCallback((item: WoodinProduct) => {
+    setCart((prev) => [...prev, { source: "woodin", item }]);
     toast.success("장바구니에 추가되었습니다.");
   }, []);
 
@@ -119,7 +136,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       yPosition += 15;
 
       doc.setFontSize(14);
-      doc.text("쉐누 (CHENOUS)", margin, yPosition);
+      if (fontLoaded) doc.setFont("NanumGothic", "normal");
+      doc.text("(주) 동서", margin, yPosition);
       yPosition += 8;
       doc.setFontSize(10);
       const dateStr = new Date().toLocaleDateString("ko-KR", {
@@ -142,62 +160,121 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       doc.setFontSize(10);
       if (fontLoaded) doc.setFont("NanumGothic", "normal");
 
-      for (let index = 0; index < cart.length; index++) {
-        const entry = cart[index];
+      let itemIndex = 0;
+
+      const estimateEntries = cart.filter((e) => e.source === "estimate");
+      const estimateByCompany = estimateEntries.reduce<{ label: string; entries: typeof estimateEntries }[]>((acc, entry) => {
+        const item = entry.item;
+        const cid = item.companyId;
+        const isWoodin = cid === WOODIN_COMPANY_ID;
+        const label = isWoodin ? "우딘" : "쉐누";
+        let group = acc.find((g) => g.label === label);
+        if (!group) {
+          group = { label, entries: [] };
+          acc.push(group);
+        }
+        group.entries.push(entry);
+        return acc;
+      }, []);
+
+      for (const { label, entries } of estimateByCompany) {
+        if (entries.length === 0) continue;
         if (yPosition > pageHeight - 50) {
           doc.addPage();
           yPosition = 20;
         }
+        doc.setFontSize(12);
+        if (fontLoaded) doc.setFont("NanumGothic", "normal");
+        doc.text(`【 ${label} 】`, margin, yPosition);
+        yPosition += 10;
 
-        if (entry.source === "estimate") {
-          const item = entry.item;
-          const displayName =
-            item.productName?.includes("목재문틀") || item.productName?.includes("才") || item.productName?.includes("사이")
-              ? "목재문틀"
-              : item.productName;
-          doc.setFontSize(11);
-          if (fontLoaded) doc.setFont("NanumGothic", "normal");
-          const productName = `${index + 1}. ${displayName}`;
-          const splitProductName = doc.splitTextToSize(productName, 170);
-          doc.text(splitProductName, margin, yPosition);
-          yPosition += splitProductName.length * 6 + 2;
-          if (item.categoryName) {
+        for (const entry of entries) {
+          itemIndex += 1;
+          if (yPosition > pageHeight - 50) {
+            doc.addPage();
+            yPosition = 20;
+          }
+
+          if (entry.source === "estimate") {
+            const item = entry.item;
+            const displayName =
+              item.productName?.includes("목재문틀") || item.productName?.includes("才") || item.productName?.includes("사이")
+                ? "목재문틀"
+                : item.productName;
+            doc.setFontSize(11);
+            if (fontLoaded) doc.setFont("NanumGothic", "normal");
+            const productName = `${itemIndex}. ${displayName}`;
+            const splitProductName = doc.splitTextToSize(productName, 170);
+            doc.text(splitProductName, margin, yPosition);
+            yPosition += splitProductName.length * 6 + 2;
+            if (item.categoryName) {
+              doc.setFontSize(9);
+              if (fontLoaded) doc.setFont("NanumGothic", "normal");
+              doc.text(
+                `카테고리: ${item.subCategoryName ? `${item.categoryName} > ${item.subCategoryName}` : item.categoryName}`,
+                margin + 5,
+                yPosition
+              );
+              yPosition += 6;
+            }
             doc.setFontSize(9);
             if (fontLoaded) doc.setFont("NanumGothic", "normal");
-            doc.text(
-              `카테고리: ${item.subCategoryName ? `${item.categoryName} > ${item.subCategoryName}` : item.categoryName}`,
-              margin + 5,
-              yPosition
-            );
+            doc.text(`단가: ${item.unitPrice.toLocaleString()}원`, margin + 5, yPosition);
             yPosition += 6;
-          }
-          doc.setFontSize(9);
-          if (fontLoaded) doc.setFont("NanumGothic", "normal");
-          doc.text(`단가: ${item.unitPrice.toLocaleString()}원`, margin + 5, yPosition);
-          yPosition += 6;
-          if (item.optionPrice !== 0) {
-            doc.text(`옵션: ${item.optionPrice > 0 ? "+" : ""}${item.optionPrice.toLocaleString()}원`, margin + 5, yPosition);
+            if (item.optionPrice !== 0) {
+              doc.text(`옵션: ${item.optionPrice > 0 ? "+" : ""}${item.optionPrice.toLocaleString()}원`, margin + 5, yPosition);
+              yPosition += 6;
+            }
+            doc.text(`수량: ${item.quantity}개`, margin + 5, yPosition);
             yPosition += 6;
-          }
-          doc.text(`수량: ${item.quantity}개`, margin + 5, yPosition);
-          yPosition += 6;
-          const baseTotal = item.finalPrice ? (item.finalPrice - (item.marginAmount ?? 0)) : item.totalPrice;
-          doc.text(`소계 (마진 적용 전): ${baseTotal.toLocaleString()}원`, margin + 5, yPosition);
-          yPosition += 6;
-          if (item.margin && item.marginAmount) {
-            doc.text(`회사 마진 (${item.margin}%): +${item.marginAmount.toLocaleString()}원`, margin + 5, yPosition);
+            const baseTotal = item.finalPrice ? (item.finalPrice - (item.marginAmount ?? 0)) : item.totalPrice;
+            doc.text(`소계 (마진 적용 전): ${baseTotal.toLocaleString()}원`, margin + 5, yPosition);
             yPosition += 6;
+            if (item.margin && item.marginAmount) {
+              doc.text(`회사 마진 (${item.margin}%): +${item.marginAmount.toLocaleString()}원`, margin + 5, yPosition);
+              yPosition += 6;
+            }
+            const finalTotal = item.finalPrice ?? item.totalPrice;
+            doc.setFontSize(11);
+            if (fontLoaded) doc.setFont("NanumGothic", "normal");
+            doc.text(`최종 소계: ${finalTotal.toLocaleString()}원`, margin + 5, yPosition);
+            yPosition += 10;
           }
-          const finalTotal = item.finalPrice ?? item.totalPrice;
-          doc.setFontSize(11);
-          if (fontLoaded) doc.setFont("NanumGothic", "normal");
-          doc.text(`최종 소계: ${finalTotal.toLocaleString()}원`, margin + 5, yPosition);
-          yPosition += 10;
-        } else {
+
+          doc.setDrawColor(200, 200, 200);
+          doc.line(margin, yPosition, 190, yPosition);
+          yPosition += 8;
+        }
+      }
+
+      // 2) 목재 - 회사별 구분 (에스와이보드, KCC 인천 영업소, 우드 뱅크, 우드랜드 등)
+      const woodEntries = cart.filter((e) => e.source === "wood");
+      const woodByCompany = woodEntries.reduce<Record<string, typeof woodEntries>>((acc, entry) => {
+        const company = getWoodCompanyName(entry);
+        if (!acc[company]) acc[company] = [];
+        acc[company].push(entry);
+        return acc;
+      }, {});
+      for (const [companyName, entries] of Object.entries(woodByCompany)) {
+        if (yPosition > pageHeight - 50) {
+          doc.addPage();
+          yPosition = 20;
+        }
+        doc.setFontSize(12);
+        if (fontLoaded) doc.setFont("NanumGothic", "normal");
+        doc.text(`【 목재 - ${companyName} 】`, margin, yPosition);
+        yPosition += 10;
+
+        for (const entry of entries) {
+          itemIndex += 1;
+          if (yPosition > pageHeight - 50) {
+            doc.addPage();
+            yPosition = 20;
+          }
           const item = entry.item;
           doc.setFontSize(11);
           if (fontLoaded) doc.setFont("NanumGothic", "normal");
-          const productName = `${index + 1}. ${item.name}`;
+          const productName = `${itemIndex}. ${item.name}`;
           const splitProductName = doc.splitTextToSize(productName, 170);
           doc.text(splitProductName, margin, yPosition);
           yPosition += splitProductName.length * 6 + 2;
@@ -227,11 +304,67 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           if (fontLoaded) doc.setFont("NanumGothic", "normal");
           doc.text(`최종 소계: ${finalTotal.toLocaleString()}원`, margin + 5, yPosition);
           yPosition += 10;
+          doc.setDrawColor(200, 200, 200);
+          doc.line(margin, yPosition, 190, yPosition);
+          yPosition += 8;
         }
+      }
 
-        doc.setDrawColor(200, 200, 200);
-        doc.line(margin, yPosition, 190, yPosition);
-        yPosition += 8;
+      // 3) 우딘
+      const woodinEntries = cart.filter((e) => e.source === "woodin");
+      if (woodinEntries.length > 0) {
+        if (yPosition > pageHeight - 50) {
+          doc.addPage();
+          yPosition = 20;
+        }
+        doc.setFontSize(12);
+        if (fontLoaded) doc.setFont("NanumGothic", "normal");
+        doc.text(`【 ${COMPANY_LABELS.woodin} 】`, margin, yPosition);
+        yPosition += 10;
+
+        for (const entry of woodinEntries) {
+          itemIndex += 1;
+          if (yPosition > pageHeight - 50) {
+            doc.addPage();
+            yPosition = 20;
+          }
+          const item = entry.item;
+          doc.setFontSize(11);
+          if (fontLoaded) doc.setFont("NanumGothic", "normal");
+          const productName = `${itemIndex}. ${item.name}`;
+          const splitProductName = doc.splitTextToSize(productName, 170);
+          doc.text(splitProductName, margin, yPosition);
+          yPosition += splitProductName.length * 6 + 2;
+          if (item.category) {
+            doc.setFontSize(9);
+            if (fontLoaded) doc.setFont("NanumGothic", "normal");
+            const categoryText =
+              item.subCategory !== item.category ? `${item.category} > ${item.subCategory}` : item.category;
+            doc.text(`카테고리: ${categoryText}`, margin + 5, yPosition);
+            yPosition += 6;
+          }
+          doc.setFontSize(9);
+          if (fontLoaded) doc.setFont("NanumGothic", "normal");
+          doc.text(`단가: ${item.unitPrice.toLocaleString()}원`, margin + 5, yPosition);
+          yPosition += 6;
+          doc.text(`수량: ${item.quantity}개`, margin + 5, yPosition);
+          yPosition += 7;
+          const baseTotal = item.finalPrice ? (item.finalPrice - (item.marginAmount ?? 0)) : item.totalPrice;
+          doc.text(`소계 (마진 적용 전): ${baseTotal.toLocaleString()}원`, margin + 5, yPosition);
+          yPosition += 6;
+          if (item.margin && item.marginAmount) {
+            doc.text(`회사 마진 (${item.margin}%): +${item.marginAmount.toLocaleString()}원`, margin + 5, yPosition);
+            yPosition += 6;
+          }
+          const finalTotal = item.finalPrice ?? item.totalPrice;
+          doc.setFontSize(11);
+          if (fontLoaded) doc.setFont("NanumGothic", "normal");
+          doc.text(`최종 소계: ${finalTotal.toLocaleString()}원`, margin + 5, yPosition);
+          yPosition += 10;
+          doc.setDrawColor(200, 200, 200);
+          doc.line(margin, yPosition, 190, yPosition);
+          yPosition += 8;
+        }
       }
 
       if (yPosition > pageHeight - 30) {
@@ -245,32 +378,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
       const totalPrice = cart.reduce((sum, entry) => sum + getItemFinalPrice(entry), 0);
       const baseTotal = cart.reduce((sum, entry) => {
-        if (entry.source === "estimate") {
-          const item = entry.item;
-          return sum + (item.finalPrice ? (item.finalPrice - (item.marginAmount ?? 0)) : item.totalPrice);
-        }
         const item = entry.item;
         return sum + (item.finalPrice ? (item.finalPrice - (item.marginAmount ?? 0)) : item.totalPrice);
       }, 0);
-      const totalMargin = cart.reduce((sum, entry) => {
-        if (entry.source === "estimate") return sum + (entry.item.marginAmount ?? 0);
-        return sum + (entry.item.marginAmount ?? 0);
-      }, 0);
+      const totalMargin = cart.reduce((sum, entry) => sum + (entry.item.marginAmount ?? 0), 0);
 
       doc.setFontSize(11);
       if (fontLoaded) doc.setFont("NanumGothic", "normal");
       doc.text(`총액 (마진 적용 전): ${baseTotal.toLocaleString()}원`, margin, yPosition);
       yPosition += 7;
       if (totalMargin > 0) {
-        const firstWithMargin = cart.find(
-          (e) => (e.source === "estimate" && e.item.margin) || (e.source === "wood" && e.item.margin)
-        );
-        const marginPercent =
-          firstWithMargin?.source === "estimate"
-            ? firstWithMargin.item.margin
-            : firstWithMargin?.source === "wood"
-              ? firstWithMargin.item.margin
-              : "0";
+        const firstWithMargin = cart.find((e) => e.item.margin);
+        const marginPercent = firstWithMargin?.item.margin ?? "0";
         doc.setFontSize(10);
         if (fontLoaded) doc.setFont("NanumGothic", "normal");
         doc.text(`회사 마진 (${marginPercent}%): +${totalMargin.toLocaleString()}원`, margin, yPosition);
@@ -300,6 +419,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     cart,
     addEstimateItem,
     addWoodItem,
+    addUdineItem,
     removeCartItem,
     updateWoodItemQuantity,
     clearCart,

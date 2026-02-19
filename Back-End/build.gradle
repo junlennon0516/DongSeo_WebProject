@@ -49,3 +49,18 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform()
 }
+
+// [필수] 자바 소스 파일 인코딩을 UTF-8로 강제 설정
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+// [필수] 리소스 파일(application.yml 등) 인코딩 설정
+tasks.withType(ProcessResources) {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
+// [추가] bootJar 실행 시에도 인코딩 유지
+bootJar {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}

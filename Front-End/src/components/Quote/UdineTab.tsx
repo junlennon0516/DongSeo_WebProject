@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "../ui/select";
 import { Checkbox } from "../ui/checkbox";
-import { Building2, Search, Loader2, Calculator, ShoppingCart, RefreshCw, Plus, Trash2, FileDown, CreditCard } from "lucide-react";
+import { Building2, Search, Loader2, Calculator, ShoppingCart, RefreshCw, Plus, Trash2, FileDown, CreditCard, Mail } from "lucide-react";
 import { toast } from "sonner";
 import type { ExtendedEstimateResponse, CartItem } from "../../types/calculator";
 import { useCart } from "../../contexts/CartContext";
@@ -63,7 +63,7 @@ export function UdineTab() {
   /** DB에서 조회한 우딘 회사 ID (상수 11이 아닐 수 있음) */
   const [woodinCompanyId, setWoodinCompanyId] = useState<number | null>(null);
 
-  const { cart, addEstimateItem, removeCartItem, clearCart, getCartTotal, generatePDF } = useCart();
+  const { cart, addEstimateItem, removeCartItem, clearCart, getCartTotal, generatePDF, generatePDFAndEmail } = useCart();
   const calculateCartTotal = (): number => getCartTotal();
 
   // 초기: 우딘 회사 ID 조회 후 카테고리 로드
@@ -293,6 +293,7 @@ export function UdineTab() {
       ...result,
       id: Date.now().toString() + Math.random().toString(36).slice(2, 9),
       companyId: woodinCompanyId,
+      companyCode: "WOODIN",
       categoryName: result.categoryName ?? selectedCategoryObj?.name ?? "",
       subCategoryName: result.subCategoryName,
       specName: specName || undefined,
@@ -517,7 +518,7 @@ export function UdineTab() {
         </Card>
 
         {/* 우측: 예상 견적서 + 장바구니 (쉐누 탭과 동일 컴포넌트 구조) */}
-        <div className="space-y-6">
+        <div className="space-y-6 pb-8 overflow-visible">
           {/* 예상 견적서 */}
           <Card className="p-6 bg-gradient-to-br from-indigo-50 to-blue-50/50 sticky top-4 rounded-3xl shadow-xl shadow-indigo-500/5">
             <CardHeader className="pb-4 border-b-2 border-gray-400">
@@ -733,7 +734,7 @@ export function UdineTab() {
               )}
             </CardContent>
             {cart.length > 0 && (
-              <CardFooter className="pt-2 flex flex-col gap-2">
+              <CardFooter className="pt-2 pb-6 flex flex-col gap-2">
                 <div className="flex gap-2">
                   <Button variant="outline" className="flex-1" onClick={clearCart}>
                     <Trash2 className="w-4 h-4 mr-2" />
@@ -744,8 +745,12 @@ export function UdineTab() {
                     PDF로 변환
                   </Button>
                 </div>
+                <Button variant="outline" className="w-full" onClick={() => generatePDFAndEmail()}>
+                  <Mail className="w-4 h-4 mr-2" />
+                  이메일로 보내기
+                </Button>
                 <Button
-                  className="w-full bg-gradient-to-r from-pastel-600 to-pastel-700 hover:from-pastel-700 hover:to-pastel-800 text-white shadow-lg shadow-pastel-600/30 hover:shadow-xl transition-all duration-300 hover:scale-105 rounded-xl font-semibold h-12"
+                  className="w-full bg-gradient-to-r from-pastel-600 to-pastel-700 hover:from-pastel-700 hover:to-pastel-800 text-black shadow-lg shadow-pastel-600/30 hover:shadow-xl transition-all duration-300 hover:scale-105 rounded-xl font-semibold h-12"
                   onClick={() => {
                     toast.success(`주문하기 페이지로 이동합니다. (총 ${cart.length}개 항목, ${calculateCartTotal().toLocaleString()}원)`);
                   }}

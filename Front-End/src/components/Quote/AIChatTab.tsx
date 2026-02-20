@@ -270,7 +270,7 @@ export function AIChatTab() {
       </Card>
 
       {/* 오른쪽: 예상 견적 및 장바구니 */}
-      <div className="space-y-6">
+      <div className="space-y-6 pb-8 overflow-visible">
         {/* 현재 계산된 견적 */}
         <Card className="p-6 bg-gradient-to-br from-indigo-50 to-blue-50/50 sticky top-4 rounded-3xl shadow-xl shadow-indigo-500/5">
           <CardHeader className="pb-4 border-b border-gray-200">
@@ -458,7 +458,7 @@ export function AIChatTab() {
             )}
           </CardContent>
           {cart.length > 0 && (
-            <CardFooter className="pt-2 flex flex-col gap-2">
+            <CardFooter className="pt-2 pb-6 flex flex-col gap-2">
               <div className="flex gap-2">
                 <Button
                   variant="outline"
@@ -478,7 +478,7 @@ export function AIChatTab() {
                 </Button>
               </div>
               <Button
-                className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white shadow-lg shadow-indigo-500/30 hover:shadow-xl transition-all duration-300 hover:scale-105 rounded-xl font-semibold h-12"
+                className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-black shadow-lg shadow-indigo-500/30 hover:shadow-xl transition-all duration-300 hover:scale-105 rounded-xl font-semibold h-12"
                 onClick={() => {
                   toast.success(`주문하기 페이지로 이동합니다. (총 ${cart.length}개 항목, ${calculateCartTotal().toLocaleString()}원)`);
                 }}

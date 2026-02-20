@@ -19,10 +19,10 @@ import {
 import { Checkbox } from "../ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { ScrollArea } from "../ui/scroll-area";
-import { Calculator, ShoppingCart, RefreshCw, Loader2, Plus, Trash2, CreditCard, FileDown, Search, X } from "lucide-react";
+import { Calculator, ShoppingCart, RefreshCw, Loader2, Plus, Trash2, CreditCard, FileDown, Search, X, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { logger } from "../../utils/logger";
-import { COMPANY_ID, CHENOUS_EXCLUDE_CATEGORY_NAMES, DEFAULT_TYPE_NAME, DEFAULT_QUANTITY, DEFAULT_ABS_DOOR_WIDTH, DEFAULT_ABS_DOOR_HEIGHT } from "../../constants/calculator";
+import { COMPANY_ID, CHENOUS_EXCLUDE_CATEGORY_NAMES, DEFAULT_TYPE_NAME, DEFAULT_QUANTITY, DEFAULT_ABS_DOOR_WIDTH, DEFAULT_ABS_DOOR_HEIGHT, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT } from "../../constants/calculator";
 import type { ExtendedEstimateResponse, CartItem } from "../../types/calculator";
 import { useCart } from "../../contexts/CartContext";
 import {
@@ -68,7 +68,7 @@ export function CalculatorTab() {
   const [isLoadingData, setIsLoadingData] = useState(false);
   
   const [result, setResult] = useState<ExtendedEstimateResponse | null>(null);
-  const { cart, addEstimateItem, removeCartItem, clearCart, getCartTotal, generatePDF } = useCart();
+  const { cart, addEstimateItem, removeCartItem, clearCart, getCartTotal, generatePDF, generatePDFAndEmail } = useCart();
   const [searchKeyword, setSearchKeyword] = useState("");
   const [searchResults, setSearchResults] = useState<ProductSearchItem[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -229,6 +229,12 @@ export function CalculatorTab() {
       if (isABSDoor) {
         if (!width) setWidth(DEFAULT_ABS_DOOR_WIDTH);
         if (!height) setHeight(DEFAULT_ABS_DOOR_HEIGHT);
+      }
+
+      // 문틀 카테고리인 경우 기본 가로/세로 설정
+      if (categoryCode === "FRAME" && selectedProduct) {
+        if (!width) setWidth(DEFAULT_FRAME_WIDTH);
+        if (!height) setHeight(DEFAULT_FRAME_HEIGHT);
       }
 
       if (selectedProductObj?.name?.includes("슬림문틀")) {
@@ -430,6 +436,7 @@ export function CalculatorTab() {
       ...result,
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9), // 고유 ID 생성
       companyId: COMPANY_ID,
+      companyCode: "CHEZNOUS",
       categoryName: result.categoryName || "",
       subCategoryName: result.subCategoryName || "",
       selectedOptions: result.selectedOptions || [],
@@ -1278,21 +1285,21 @@ export function CalculatorTab() {
                       <Label>가로 폭 (mm)</Label>
                       <Input
                         type="number"
-                        placeholder="예: 900"
-                        value={width}
-                      onChange={(e) => setWidth(e.target.value)}
-                      className="bg-white border-gray-200"
-                    />
+                        placeholder="900"
+                        value={width || DEFAULT_FRAME_WIDTH}
+                        onChange={(e) => setWidth(e.target.value)}
+                        className="bg-white border-gray-200"
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label>세로 높이 (mm)</Label>
                       <Input
                         type="number"
-                        placeholder="예: 2100"
-                        value={height}
-                      onChange={(e) => setHeight(e.target.value)}
-                      className="bg-white border-gray-200"
-                    />
+                        placeholder="2100"
+                        value={height || DEFAULT_FRAME_HEIGHT}
+                        onChange={(e) => setHeight(e.target.value)}
+                        className="bg-white border-gray-200"
+                      />
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -1335,8 +1342,8 @@ export function CalculatorTab() {
                     <Label>가로 폭 (mm)</Label>
                     <Input
                       type="number"
-                      placeholder="예: 900"
-                      value={width}
+                      placeholder="900"
+                      value={width || DEFAULT_FRAME_WIDTH}
                       onChange={(e) => setWidth(e.target.value)}
                       className="bg-white border-gray-200"
                     />
@@ -1345,8 +1352,8 @@ export function CalculatorTab() {
                     <Label>세로 높이 (mm)</Label>
                     <Input
                       type="number"
-                      placeholder="예: 2100"
-                      value={height}
+                      placeholder="2100"
+                      value={height || DEFAULT_FRAME_HEIGHT}
                       onChange={(e) => setHeight(e.target.value)}
                       className="bg-white border-gray-200"
                     />
@@ -2008,7 +2015,7 @@ export function CalculatorTab() {
       </Card>
 
       {/* 결과 표시 영역 */}
-      <div className="space-y-6">
+      <div className="space-y-6 pb-8 overflow-visible">
         {/* 현재 계산된 견적 */}
         <Card className="p-6 bg-gradient-to-br from-indigo-50 to-blue-50/50 sticky top-4 rounded-3xl shadow-xl shadow-indigo-500/5">
           <CardHeader className="pb-4 border-b-2 border-gray-400">
@@ -2313,27 +2320,23 @@ export function CalculatorTab() {
             )}
           </CardContent>
           {cart.length > 0 && (
-            <CardFooter className="pt-2 flex flex-col gap-2">
+            <CardFooter className="pt-2 pb-6 flex flex-col gap-2">
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={clearCart}
-                >
+                <Button variant="outline" className="flex-1" onClick={clearCart}>
                   <Trash2 className="w-4 h-4 mr-2" />
                   장바구니 비우기
                 </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => generatePDF()}
-                >
+                <Button variant="outline" className="flex-1" onClick={() => generatePDF()}>
                   <FileDown className="w-4 h-4 mr-2" />
                   PDF로 변환
                 </Button>
               </div>
+              <Button variant="outline" className="w-full" onClick={() => generatePDFAndEmail()}>
+                <Mail className="w-4 h-4 mr-2" />
+                이메일로 보내기
+              </Button>
               <Button
-                className="w-full bg-gradient-to-r from-pastel-600 to-pastel-700 hover:from-pastel-700 hover:to-pastel-800 text-white shadow-lg shadow-pastel-600/30 hover:shadow-xl transition-all duration-300 hover:scale-105 rounded-xl font-semibold h-12"
+                className="w-full bg-gradient-to-r from-pastel-600 to-pastel-700 hover:from-pastel-700 hover:to-pastel-800 text-black shadow-lg shadow-pastel-600/30 hover:shadow-xl transition-all duration-300 hover:scale-105 rounded-xl font-semibold h-12"
                 onClick={() => {
                   toast.success(`주문하기 페이지로 이동합니다. (총 ${cart.length}개 항목, ${calculateCartTotal().toLocaleString()}원)`);
                   // TODO: 주문하기 페이지로 이동하는 로직 구현

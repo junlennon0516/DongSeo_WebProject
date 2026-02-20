@@ -10,7 +10,7 @@ import { Button } from "../ui/button";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { ScrollArea } from "../ui/scroll-area";
-import { ShoppingCart, Loader2, Plus, Trash2, Search, X, Calculator, RefreshCw, FileDown, CreditCard, Package } from "lucide-react";
+import { ShoppingCart, Loader2, Plus, Trash2, Search, X, Calculator, RefreshCw, FileDown, CreditCard, Package, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { logger } from "../../utils/logger";
 import {
@@ -57,7 +57,7 @@ export function WoodTab() {
   const [margin, setMargin] = useState<string>("");
   
   const [result, setResult] = useState<WoodEstimate | null>(null);
-  const { cart, addWoodItem, removeCartItem, updateWoodItemQuantity, clearCart, getCartTotal, generatePDF } = useCart();
+  const { cart, addWoodItem, removeCartItem, updateWoodItemQuantity, clearCart, getCartTotal, generatePDF, generatePDFAndEmail } = useCart();
   const [isLoading, setIsLoading] = useState(false);
 
   // 목재 제품 검색 (상단 검색)
@@ -499,7 +499,7 @@ export function WoodTab() {
         </div>
 
       {/* 우측: 예상 견적서 및 장바구니 */}
-      <div className="space-y-6">
+      <div className="space-y-6 pb-8 overflow-visible">
         {/* 현재 계산된 견적 */}
         <Card className="p-6 bg-gradient-to-br from-indigo-50 to-blue-50/50 sticky top-4 rounded-3xl shadow-xl shadow-indigo-500/5">
           <CardHeader className="pb-4 border-b border-gray-200">
@@ -716,27 +716,23 @@ export function WoodTab() {
             )}
           </CardContent>
           {cart.length > 0 && (
-            <CardFooter className="pt-2 flex flex-col gap-2">
+            <CardFooter className="pt-2 pb-6 flex flex-col gap-2">
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={clearCart}
-                >
+                <Button variant="outline" className="flex-1" onClick={clearCart}>
                   <Trash2 className="w-4 h-4 mr-2" />
                   장바구니 비우기
                 </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => generatePDF()}
-                >
+                <Button variant="outline" className="flex-1" onClick={() => generatePDF()}>
                   <FileDown className="w-4 h-4 mr-2" />
                   PDF로 변환
                 </Button>
               </div>
+              <Button variant="outline" className="w-full" onClick={() => generatePDFAndEmail()}>
+                <Mail className="w-4 h-4 mr-2" />
+                이메일로 보내기
+              </Button>
               <Button
-                className="w-full bg-gradient-to-r from-pastel-600 to-pastel-700 hover:from-pastel-700 hover:to-pastel-800 text-white shadow-lg shadow-pastel-600/30 hover:shadow-xl transition-all duration-300 hover:scale-105 rounded-xl font-semibold h-12"
+                className="w-full bg-gradient-to-r from-pastel-600 to-pastel-700 hover:from-pastel-700 hover:to-pastel-800 text-black shadow-lg shadow-pastel-600/30 hover:shadow-xl transition-all duration-300 hover:scale-105 rounded-xl font-semibold h-12"
                 onClick={() => {
                   toast.success(`주문하기 페이지로 이동합니다. (총 ${cart.length}개 항목, ${calculateCartTotal().toLocaleString()}원)`);
                 }}

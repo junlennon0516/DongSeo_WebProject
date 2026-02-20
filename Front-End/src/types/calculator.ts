@@ -20,7 +20,8 @@ export interface ExtendedEstimateResponse extends EstimateResponse {
  */
 export interface CartItem extends ExtendedEstimateResponse {
   id: string; // 고유 ID
-  companyId?: number; // 견적 회사 (1: 쉐누, 11: 우딘 등) - PDF 회사별 구분용
+  companyId?: number; // 견적 회사 ID (PDF용)
+  companyCode?: string; // 견적 회사 코드 (WOODIN: 우딘, CHEZNOUS: 쉐누) - PDF 회사별 구분용
   width?: string; // 가로폭
   height?: string; // 세로높이
   specName?: string; // 규격명

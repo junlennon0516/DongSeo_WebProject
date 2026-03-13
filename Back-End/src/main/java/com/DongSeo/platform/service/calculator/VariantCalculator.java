@@ -25,23 +25,46 @@ public class VariantCalculator implements PriceCalculator {
             product.getId(), request.getSpecName(), request.getTypeName()
         ).orElseThrow(() -> new IllegalArgumentException("해당 규격의 제품이 없습니다."));
 
-        // 목재문틀인 경우: 才(사이) 계산 필요
-        // 才 = (가로 x 세로) / 900,000
-        // 최종 가격 = 才 x (才당 단가)
-        if (product.getName() != null && product.getName().contains("목재문틀")) {
+        // 우딘 목재 문틀: 기본 기준 1050 x 2100 이하
+        // 2100 초과 ~ 2400 이하는 문틀폭(spec) 기준 추가금 적용
+        if (product.getName() != null && (product.getName().contains("목재문틀") || product.getName().contains("목재 문틀"))) {
             if (request.getWidth() == null || request.getHeight() == null) {
                 throw new IllegalArgumentException("목재문틀은 가로와 세로를 입력해야 합니다.");
             }
-            
-            // 才 계산: (가로 x 세로) / 900,000
-            double sae = (request.getWidth() * request.getHeight()) / 900000.0;
-            // 才당 단가
-            int pricePerSae = variant.getPrice();
-            // 최종 가격 = 才 x 才당 단가 (소수점 반올림)
-            return (int) Math.round(sae * pricePerSae);
+
+            if (request.getWidth() > 1050) {
+                throw new IllegalArgumentException("목재문틀은 가로 1050mm 이하 기준으로 계산됩니다.");
+            }
+            if (request.getHeight() > 2400) {
+                throw new IllegalArgumentException("목재문틀은 세로 2400mm 이하만 계산 가능합니다.");
+            }
+
+            int basePrice = variant.getPrice();
+            if (request.getHeight() <= 2100) {
+                return basePrice;
+            }
+
+            int specWidth = parseSpecWidth(request.getSpecName());
+            return basePrice + getWoodFrameHeightSurcharge(specWidth);
         }
 
         // 일반 제품 (PVC 발포문틀, 슬림문틀, 몰딩 등)은 variant의 가격 그대로 반환
         return variant.getPrice();
+    }
+
+    private int parseSpecWidth(String specName) {
+        try {
+            return Integer.parseInt(specName);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("목재문틀 규격이 올바르지 않습니다.");
+        }
+    }
+
+    private int getWoodFrameHeightSurcharge(int specWidth) {
+        if (specWidth >= 110 && specWidth <= 140) return 5000;
+        if (specWidth >= 150 && specWidth <= 170) return 7000;
+        if (specWidth >= 180 && specWidth <= 200) return 10000;
+        if (specWidth >= 210 && specWidth <= 250) return 12000;
+        return 0;
     }
 }

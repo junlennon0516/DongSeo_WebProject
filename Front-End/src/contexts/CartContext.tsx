@@ -40,6 +40,17 @@ function getItemFinalPrice(entry: UnifiedCartItem): number {
   return entry.item.finalPrice ?? entry.item.totalPrice ?? 0;
 }
 
+function getItemSupplyTotal(entry: UnifiedCartItem): number {
+  // 고객용 견적서:
+  // - 공급가액 = (원가 + 마진) 합계 (마진은 금액/퍼센트로 '표시하지 않음')
+  // - VAT/합계는 공급가액을 기준으로 계산
+  return getItemFinalPrice(entry);
+}
+
+function calcVat10(supply: number): number {
+  return Math.round(supply * 0.1);
+}
+
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<UnifiedCartItem[]>([]);
 
@@ -216,6 +227,38 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
               );
               yPosition += 6;
             }
+            // 규격/타입
+            if (item.specName || item.typeName) {
+              doc.setFontSize(9);
+              if (fontLoaded) doc.setFont("NanumGothic", "normal");
+              const st = [item.specName, item.typeName].filter(Boolean).join(" / ");
+              const splitSt = doc.splitTextToSize(`규격/타입: ${st}`, 170);
+              doc.text(splitSt, margin + 5, yPosition);
+              yPosition += splitSt.length * 6;
+            }
+            // 가로/세로
+            if (item.width || item.height) {
+              doc.setFontSize(9);
+              if (fontLoaded) doc.setFont("NanumGothic", "normal");
+              const szParts = [
+                item.width ? `가로: ${item.width}mm` : null,
+                item.height ? `세로: ${item.height}mm` : null,
+              ].filter(Boolean);
+              const splitSz = doc.splitTextToSize(`사이즈: ${szParts.join(", ")}`, 170);
+              doc.text(splitSz, margin + 5, yPosition);
+              yPosition += splitSz.length * 6;
+            }
+            // 색상
+            if (item.selectedColorName) {
+              doc.setFontSize(9);
+              if (fontLoaded) doc.setFont("NanumGothic", "normal");
+              const colorText = item.selectedColorCode
+                ? `${item.selectedColorName} (${item.selectedColorCode})`
+                : item.selectedColorName;
+              const splitColor = doc.splitTextToSize(`색상: ${colorText}`, 170);
+              doc.text(splitColor, margin + 5, yPosition);
+              yPosition += splitColor.length * 6;
+            }
             doc.setFontSize(9);
             if (fontLoaded) doc.setFont("NanumGothic", "normal");
             doc.text(`단가: ${item.unitPrice.toLocaleString()}원`, margin + 5, yPosition);
@@ -224,19 +267,33 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
               doc.text(`옵션: ${item.optionPrice > 0 ? "+" : ""}${item.optionPrice.toLocaleString()}원`, margin + 5, yPosition);
               yPosition += 6;
             }
+            if (item.selectedOptions && item.selectedOptions.length > 0) {
+              doc.setFontSize(9);
+              if (fontLoaded) doc.setFont("NanumGothic", "normal");
+              const splitOpts = doc.splitTextToSize(`선택 옵션: ${item.selectedOptions.join(", ")}`, 170);
+              doc.text(splitOpts, margin + 5, yPosition);
+              yPosition += splitOpts.length * 6;
+            }
             doc.text(`수량: ${item.quantity}개`, margin + 5, yPosition);
             yPosition += 6;
-            const baseTotal = item.finalPrice ? (item.finalPrice - (item.marginAmount ?? 0)) : item.totalPrice;
-            doc.text(`소계 (마진 적용 전): ${baseTotal.toLocaleString()}원`, margin + 5, yPosition);
+            const supplyTotal = getItemSupplyTotal(entry);
+            const supplyUnit = item.quantity > 0 ? Math.round(supplyTotal / item.quantity) : supplyTotal;
+            const vat = calcVat10(supplyTotal);
+            const gross = supplyTotal + vat;
+
+            doc.text(`단가(공급가 기준): ${supplyUnit.toLocaleString()}원`, margin + 5, yPosition);
             yPosition += 6;
-            if (item.margin && item.marginAmount) {
-              doc.text(`회사 마진 (${item.margin}%): +${item.marginAmount.toLocaleString()}원`, margin + 5, yPosition);
-              yPosition += 6;
-            }
-            const finalTotal = item.finalPrice ?? item.totalPrice;
             doc.setFontSize(11);
             if (fontLoaded) doc.setFont("NanumGothic", "normal");
-            doc.text(`최종 소계: ${finalTotal.toLocaleString()}원`, margin + 5, yPosition);
+            doc.text(`공급가액: ${supplyTotal.toLocaleString()}원`, margin + 5, yPosition);
+            yPosition += 6;
+            doc.setFontSize(10);
+            if (fontLoaded) doc.setFont("NanumGothic", "normal");
+            doc.text(`VAT (10%): +${vat.toLocaleString()}원`, margin + 5, yPosition);
+            yPosition += 6;
+            doc.setFontSize(11);
+            if (fontLoaded) doc.setFont("NanumGothic", "normal");
+            doc.text(`합계: ${gross.toLocaleString()}원`, margin + 5, yPosition);
             yPosition += 10;
           }
 
@@ -291,17 +348,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           yPosition += 6;
           doc.text(`수량: ${item.quantity}개`, margin + 5, yPosition);
           yPosition += 7;
-          const baseTotal = item.finalPrice ? (item.finalPrice - (item.marginAmount ?? 0)) : item.totalPrice;
-          doc.text(`소계 (마진 적용 전): ${baseTotal.toLocaleString()}원`, margin + 5, yPosition);
+          const supplyTotal = getItemSupplyTotal(entry);
+          const vat = calcVat10(supplyTotal);
+          const gross = supplyTotal + vat;
+          doc.text(`공급가액: ${supplyTotal.toLocaleString()}원`, margin + 5, yPosition);
           yPosition += 6;
-          if (item.margin && item.marginAmount) {
-            doc.text(`회사 마진 (${item.margin}%): +${item.marginAmount.toLocaleString()}원`, margin + 5, yPosition);
-            yPosition += 6;
-          }
-          const finalTotal = item.finalPrice ?? item.totalPrice;
+          doc.text(`VAT (10%): +${vat.toLocaleString()}원`, margin + 5, yPosition);
+          yPosition += 6;
           doc.setFontSize(11);
           if (fontLoaded) doc.setFont("NanumGothic", "normal");
-          doc.text(`최종 소계: ${finalTotal.toLocaleString()}원`, margin + 5, yPosition);
+          doc.text(`합계: ${gross.toLocaleString()}원`, margin + 5, yPosition);
           yPosition += 10;
           doc.setDrawColor(200, 200, 200);
           doc.line(margin, yPosition, 190, yPosition);
@@ -348,17 +404,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           yPosition += 6;
           doc.text(`수량: ${item.quantity}개`, margin + 5, yPosition);
           yPosition += 7;
-          const baseTotal = item.finalPrice ? (item.finalPrice - (item.marginAmount ?? 0)) : item.totalPrice;
-          doc.text(`소계 (마진 적용 전): ${baseTotal.toLocaleString()}원`, margin + 5, yPosition);
+          const supplyTotal = getItemSupplyTotal(entry);
+          const vat = calcVat10(supplyTotal);
+          const gross = supplyTotal + vat;
+          doc.text(`공급가액: ${supplyTotal.toLocaleString()}원`, margin + 5, yPosition);
           yPosition += 6;
-          if (item.margin && item.marginAmount) {
-            doc.text(`회사 마진 (${item.margin}%): +${item.marginAmount.toLocaleString()}원`, margin + 5, yPosition);
-            yPosition += 6;
-          }
-          const finalTotal = item.finalPrice ?? item.totalPrice;
+          doc.text(`VAT (10%): +${vat.toLocaleString()}원`, margin + 5, yPosition);
+          yPosition += 6;
           doc.setFontSize(11);
           if (fontLoaded) doc.setFont("NanumGothic", "normal");
-          doc.text(`최종 소계: ${finalTotal.toLocaleString()}원`, margin + 5, yPosition);
+          doc.text(`합계: ${gross.toLocaleString()}원`, margin + 5, yPosition);
           yPosition += 10;
           doc.setDrawColor(200, 200, 200);
           doc.line(margin, yPosition, 190, yPosition);
@@ -375,32 +430,25 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       doc.line(margin, yPosition, 190, yPosition);
       yPosition += 10;
 
-      const totalPrice = cart.reduce((sum, entry) => sum + getItemFinalPrice(entry), 0);
-      const baseTotal = cart.reduce((sum, entry) => {
-        const item = entry.item;
-        return sum + (item.finalPrice ? (item.finalPrice - (item.marginAmount ?? 0)) : item.totalPrice);
-      }, 0);
-      const totalMargin = cart.reduce((sum, entry) => sum + (entry.item.marginAmount ?? 0), 0);
+      const supplyTotal = cart.reduce((sum, entry) => sum + getItemSupplyTotal(entry), 0);
+      const vat = calcVat10(supplyTotal);
+      const totalPrice = supplyTotal + vat;
 
       doc.setFontSize(11);
       if (fontLoaded) doc.setFont("NanumGothic", "normal");
-      doc.text(`총액 (마진 적용 전): ${baseTotal.toLocaleString()}원`, margin, yPosition);
+      doc.text(`공급가액: ${supplyTotal.toLocaleString()}원`, margin, yPosition);
       yPosition += 7;
-      if (totalMargin > 0) {
-        const firstWithMargin = cart.find((e) => e.item.margin);
-        const marginPercent = firstWithMargin?.item.margin ?? "0";
-        doc.setFontSize(10);
-        if (fontLoaded) doc.setFont("NanumGothic", "normal");
-        doc.text(`회사 마진 (${marginPercent}%): +${totalMargin.toLocaleString()}원`, margin, yPosition);
-        yPosition += 7;
-      }
+      doc.setFontSize(10);
+      if (fontLoaded) doc.setFont("NanumGothic", "normal");
+      doc.text(`VAT (10%): +${vat.toLocaleString()}원`, margin, yPosition);
+      yPosition += 7;
       doc.setFontSize(14);
       if (fontLoaded) doc.setFont("NanumGothic", "normal");
-      doc.text(`총 예상 금액: ${totalPrice.toLocaleString()}원`, margin, yPosition);
+      doc.text(`총 합계: ${totalPrice.toLocaleString()}원`, margin, yPosition);
       yPosition += 10;
       doc.setFontSize(9);
       if (fontLoaded) doc.setFont("NanumGothic", "normal");
-      doc.text("* VAT 별도", margin, yPosition);
+      doc.text("* 공급가액은 마진 포함 금액입니다. VAT(10%)는 별도 표기됩니다.", margin, yPosition);
       yPosition += 6;
       const noteText = "* 본 견적서는 참고용이며, 실제 견적은 현장 확인 후 결정됩니다.";
       doc.text(doc.splitTextToSize(noteText, 170), margin, yPosition);
@@ -523,6 +571,35 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
               );
               yPosition += 6;
             }
+            // 규격/타입
+            if (item.specName || item.typeName) {
+              doc.setFontSize(9);
+              const st = [item.specName, item.typeName].filter(Boolean).join(" / ");
+              const splitSt = doc.splitTextToSize(`규격/타입: ${st}`, 170);
+              doc.text(splitSt, margin + 5, yPosition);
+              yPosition += splitSt.length * 6;
+            }
+            // 가로/세로
+            if (item.width || item.height) {
+              doc.setFontSize(9);
+              const szParts = [
+                item.width ? `가로: ${item.width}mm` : null,
+                item.height ? `세로: ${item.height}mm` : null,
+              ].filter(Boolean);
+              const splitSz = doc.splitTextToSize(`사이즈: ${szParts.join(", ")}`, 170);
+              doc.text(splitSz, margin + 5, yPosition);
+              yPosition += splitSz.length * 6;
+            }
+            // 색상
+            if (item.selectedColorName) {
+              doc.setFontSize(9);
+              const colorText = item.selectedColorCode
+                ? `${item.selectedColorName} (${item.selectedColorCode})`
+                : item.selectedColorName;
+              const splitColor = doc.splitTextToSize(`색상: ${colorText}`, 170);
+              doc.text(splitColor, margin + 5, yPosition);
+              yPosition += splitColor.length * 6;
+            }
             doc.setFontSize(9);
             doc.text(`단가: ${item.unitPrice.toLocaleString()}원`, margin + 5, yPosition);
             yPosition += 6;
@@ -530,18 +607,29 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
               doc.text(`옵션: ${item.optionPrice > 0 ? "+" : ""}${item.optionPrice.toLocaleString()}원`, margin + 5, yPosition);
               yPosition += 6;
             }
+            if (item.selectedOptions && item.selectedOptions.length > 0) {
+              doc.setFontSize(9);
+              const splitOpts = doc.splitTextToSize(`선택 옵션: ${item.selectedOptions.join(", ")}`, 170);
+              doc.text(splitOpts, margin + 5, yPosition);
+              yPosition += splitOpts.length * 6;
+            }
             doc.text(`수량: ${item.quantity}개`, margin + 5, yPosition);
             yPosition += 6;
-            const baseTotal = item.finalPrice ? item.finalPrice - (item.marginAmount ?? 0) : item.totalPrice;
-            doc.text(`소계 (마진 적용 전): ${baseTotal.toLocaleString()}원`, margin + 5, yPosition);
+            const supplyTotal = getItemSupplyTotal(entry);
+            const supplyUnit = item.quantity > 0 ? Math.round(supplyTotal / item.quantity) : supplyTotal;
+            const vat = calcVat10(supplyTotal);
+            const gross = supplyTotal + vat;
+
+            doc.text(`단가(공급가 기준): ${supplyUnit.toLocaleString()}원`, margin + 5, yPosition);
             yPosition += 6;
-            if (item.margin && item.marginAmount) {
-              doc.text(`회사 마진 (${item.margin}%): +${item.marginAmount.toLocaleString()}원`, margin + 5, yPosition);
-              yPosition += 6;
-            }
-            const finalTotal = item.finalPrice ?? item.totalPrice;
             doc.setFontSize(11);
-            doc.text(`최종 소계: ${finalTotal.toLocaleString()}원`, margin + 5, yPosition);
+            doc.text(`공급가액: ${supplyTotal.toLocaleString()}원`, margin + 5, yPosition);
+            yPosition += 6;
+            doc.setFontSize(10);
+            doc.text(`VAT (10%): +${vat.toLocaleString()}원`, margin + 5, yPosition);
+            yPosition += 6;
+            doc.setFontSize(11);
+            doc.text(`합계: ${gross.toLocaleString()}원`, margin + 5, yPosition);
             yPosition += 10;
           }
           doc.setDrawColor(200, 200, 200);
@@ -635,28 +723,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       doc.line(margin, yPosition, 190, yPosition);
       yPosition += 10;
 
-      const totalPrice = cart.reduce((sum, entry) => sum + getItemFinalPrice(entry), 0);
-      const baseTotal = cart.reduce((sum, entry) => {
-        const item = entry.item;
-        return sum + (item.finalPrice ? item.finalPrice - (item.marginAmount ?? 0) : item.totalPrice);
-      }, 0);
-      const totalMargin = cart.reduce((sum, entry) => sum + (entry.item.marginAmount ?? 0), 0);
+      const supplyTotal = cart.reduce((sum, entry) => sum + getItemSupplyTotal(entry), 0);
+      const vat = calcVat10(supplyTotal);
+      const totalPrice = supplyTotal + vat;
 
       doc.setFontSize(11);
-      doc.text(`총액 (마진 적용 전): ${baseTotal.toLocaleString()}원`, margin, yPosition);
+      doc.text(`공급가액: ${supplyTotal.toLocaleString()}원`, margin, yPosition);
       yPosition += 7;
-      if (totalMargin > 0) {
-        const firstWithMargin = cart.find((e) => e.item.margin);
-        const marginPercent = firstWithMargin?.item.margin ?? "0";
-        doc.setFontSize(10);
-        doc.text(`회사 마진 (${marginPercent}%): +${totalMargin.toLocaleString()}원`, margin, yPosition);
-        yPosition += 7;
-      }
+      doc.setFontSize(10);
+      doc.text(`VAT (10%): +${vat.toLocaleString()}원`, margin, yPosition);
+      yPosition += 7;
       doc.setFontSize(14);
-      doc.text(`총 예상 금액: ${totalPrice.toLocaleString()}원`, margin, yPosition);
+      doc.text(`총 합계: ${totalPrice.toLocaleString()}원`, margin, yPosition);
       yPosition += 10;
       doc.setFontSize(9);
-      doc.text("* VAT 별도", margin, yPosition);
+      doc.text("* 공급가액은 마진 포함 금액입니다. VAT(10%)는 별도 표기됩니다.", margin, yPosition);
       yPosition += 6;
       doc.text(doc.splitTextToSize("* 본 견적서는 참고용이며, 실제 견적은 현장 확인 후 결정됩니다.", 170), margin, yPosition);
 

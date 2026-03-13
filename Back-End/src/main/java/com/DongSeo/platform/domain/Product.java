@@ -32,4 +32,11 @@ public class Product {
 
     /** 목재 합판 등 규격 (예: 1220 × 2440mm, 910 × 1820mm) */
     private String size;
+
+    /** 도어 등 제품별 규격: 최소/최대 폭(mm), null=제한없음 */
+    private Integer minWidth;
+    private Integer maxWidth;
+    /** 도어 등 제품별 규격: 최소/최대 길이(높이, mm), null=제한없음 */
+    private Integer minHeight;
+    private Integer maxHeight;
 }

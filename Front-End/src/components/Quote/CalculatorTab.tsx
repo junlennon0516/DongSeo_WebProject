@@ -49,6 +49,9 @@ export function CalculatorTab() {
   const [options, setOptions] = useState<Option[]>([]);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [colors, setColors] = useState<Color[]>([]);
+
+  /** 대분류: 도어 / 문틀 / 몰딩 / 필름 / 목창호 / 기타 (우딘과 동일한 버튼식 2단 선택) */
+  const [mainGroup, setMainGroup] = useState<string>("");
   
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedSubCategory, setSelectedSubCategory] = useState<string>("");
@@ -187,6 +190,27 @@ export function CalculatorTab() {
     setVariants([]);
     setSubCategories([]);
   }, [selectedCategory]);
+
+  // 쉐누 대분류별 메인 카테고리 (도어/문틀/몰딩/필름/목창호/기타)
+  const getMainGroupForCategory = (c: Category): string => {
+    const name = (c.name || "").trim();
+    const code = (c.code || "").toUpperCase();
+    if (name.includes("도어") || code.includes("DOOR")) return "도어";
+    if (name.includes("문틀") || code === "FRAME") return "문틀";
+    if (name.includes("몰딩") || code === "MOLDING") return "몰딩";
+    if (name.includes("필름") || code === "FILM") return "필름";
+    if (name.includes("목창호") || code === "WINDOW") return "목창호";
+    return "기타";
+  };
+  const MAIN_GROUP_ORDER = ["도어", "문틀", "몰딩", "필름", "목창호", "기타"] as const;
+  const mainGroupsWithCategories = MAIN_GROUP_ORDER.filter(
+    (g) => categories.some((c) => getMainGroupForCategory(c) === g)
+  );
+  const categoriesInMainGroup = mainGroup
+    ? categories
+        .filter((c) => getMainGroupForCategory(c) === mainGroup)
+        .sort((a, b) => (a.name || "").localeCompare(b.name || "", "ko"))
+    : [];
   
   // 세부 카테고리 변경 시 리셋
   useEffect(() => {
@@ -1055,65 +1079,77 @@ export function CalculatorTab() {
         </h3>
 
         <div className="space-y-6">
-          {/* 메인 카테고리 선택 */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* 1. 대분류 선택 (도어 / 문틀 / 몰딩 / 필름 / 목창호 / 기타) */}
+          <div className="space-y-2">
+            <Label>대분류</Label>
+            <div className="flex flex-wrap gap-2">
+              {mainGroupsWithCategories.length === 0 && !isLoadingData && (
+                <p className="text-sm text-gray-500">카테고리가 없습니다.</p>
+              )}
+              {mainGroupsWithCategories.map((group) => (
+                <Button
+                  key={group}
+                  type="button"
+                  variant={mainGroup === group ? "default" : "outline"}
+                  size="lg"
+                  className="min-w-[90px]"
+                  disabled={isLoadingData}
+                  onClick={() => {
+                    setMainGroup(group);
+                    setSelectedCategory("");
+                  }}
+                >
+                  {group}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* 2. 메인 카테고리 선택 (대분류 선택 후 표시) */}
+          {mainGroup && (
             <div className="space-y-2">
               <Label>메인 카테고리</Label>
-              <Select
-                onValueChange={setSelectedCategory}
-                value={selectedCategory}
-                disabled={isLoadingData}
-              >
-                <SelectTrigger className="bg-slate-50 border-gray-200">
-                  <SelectValue placeholder="메인 카테고리 선택" />
-                </SelectTrigger>
-                <SelectContent className="bg-white">
-                  {categories.length === 0 ? (
-                    <div className="px-2 py-1.5 text-sm text-gray-500">
-                      {isLoadingData ? "로딩 중..." : "카테고리가 없습니다"}
-                    </div>
-                  ) : (
-                    categories.map((category) => {
-                      logger.debug("카테고리 렌더링:", category);
-                      return (
-                        <SelectItem
-                          key={category.id}
-                          value={category.id.toString()}
-                        >
-                          {category.name || `카테고리 ${category.id}`}
-                        </SelectItem>
-                      );
-                    })
-                  )}
-                </SelectContent>
-              </Select>
+              {categoriesInMainGroup.length === 0 ? (
+                <p className="text-sm text-amber-600">해당 대분류의 카테고리가 없습니다.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {categoriesInMainGroup.map((c) => (
+                    <Button
+                      key={c.id}
+                      type="button"
+                      variant={selectedCategory === c.id.toString() ? "default" : "outline"}
+                      size="sm"
+                      disabled={isLoadingData}
+                      onClick={() => setSelectedCategory(c.id.toString())}
+                    >
+                      {c.name || `카테고리 ${c.id}`}
+                    </Button>
+                  ))}
+                </div>
+              )}
             </div>
-            {/* 세부 카테고리 선택 (세부 카테고리가 있는 경우) */}
-            {selectedCategory && subCategories.length > 0 && (
-              <div className="space-y-2">
-                <Label>세부 카테고리</Label>
-                <Select
-                  onValueChange={setSelectedSubCategory}
-                  value={selectedSubCategory}
-                  disabled={!selectedCategory || isLoadingData}
-                >
-                  <SelectTrigger className="bg-slate-50 border-gray-200">
-                    <SelectValue placeholder="세부 카테고리 선택" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white">
-                    {subCategories.map((subCategory) => (
-                      <SelectItem
-                        key={subCategory.id}
-                        value={subCategory.id.toString()}
-                      >
-                        {subCategory.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          )}
+
+          {/* 3. 세부 카테고리 선택 (메인에 하위가 있는 경우 버튼으로 표시) */}
+          {selectedCategory && subCategories.length > 0 && (
+            <div className="space-y-2">
+              <Label>세부 카테고리</Label>
+              <div className="flex flex-wrap gap-2">
+                {subCategories.map((sub) => (
+                  <Button
+                    key={sub.id}
+                    type="button"
+                    variant={selectedSubCategory === sub.id.toString() ? "default" : "outline"}
+                    size="sm"
+                    disabled={isLoadingData}
+                    onClick={() => setSelectedSubCategory(sub.id.toString())}
+                  >
+                    {sub.name}
+                  </Button>
+                ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
           
           {/* 제품명 선택 (간살 목창호는 제외) */}
           {(() => {
@@ -1161,6 +1197,21 @@ export function CalculatorTab() {
                       )}
                   </SelectContent>
                 </Select>
+                {selectedProduct && (() => {
+                  const p = products.find((x) => x.id.toString() === selectedProduct);
+                  if (!p) return null;
+                  return (
+                    <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                      <div className="font-medium text-gray-900">선택 제품 정보</div>
+                      <div className="mt-1">
+                        {(p.description || p.size) && (
+                          <div>규격: {[p.description, p.size].filter(Boolean).join(" · ") || "-"}</div>
+                        )}
+                        <div>단가: {p.basePrice != null ? `${p.basePrice.toLocaleString()}원` : "-"}</div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             );
           })()}

@@ -15,6 +15,9 @@
 8. **08_woodin_slim_frames.sql** — 목재 슬림 문틀(기본형), 발포 슬림 문틀
 9. **09_woodin_wood_frame_gird.sql** — 목재 문틀, 공틀, 랩핑 문틀 옵션, 가틀 LVB
 10. **10_woodin_frame_window.sql** — 연동 문틀/창틀, 미서기 문틀/창틀, 옵션
+11. **11_woodin_colors.sql** — 우딘 색상 데이터
+12. **12_woodin_hidden_door.sql** — 도어 - 히든 (히든 문틀, 히든 도어, 옵션, 핸들)
+13. **13_woodin_abs_door.sql** — 도어 - ABS (베이직, 라인, 포인트, 알루미늄 엣지, 특대 성형, 네추럴, 프리미엄, PP 베이직)
 
 `data.sql` 실행 후 위 순서대로 실행하면 됩니다. 각 파일은 `INSERT IGNORE`를 사용해 중복 실행해도 안전합니다.
 

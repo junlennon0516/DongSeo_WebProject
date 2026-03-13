@@ -142,6 +142,7 @@ public class AdminController {
                 category.getId(), category.getName(), category.getCode());
         return ResponseEntity.ok(new ProductResponse(
                 product.getId(), product.getName(), product.getBasePrice(), product.getDescription(), product.getSize(),
+                product.getMinWidth(), product.getMaxWidth(), product.getMinHeight(), product.getMaxHeight(),
                 company.getId(), company.getName(), catInfo));
     }
 

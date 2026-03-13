@@ -444,8 +444,11 @@ export function WoodTab() {
                       <p className="font-semibold text-gray-900">{selected.name}</p>
                       {(selected.size || selected.description) && (
                         <p className="text-sm text-gray-600 break-words mt-1">
-                          {[selected.size, selected.description].filter(Boolean).join(" · ")}
+                          규격: {[selected.size, selected.description].filter(Boolean).join(" · ")}
                         </p>
+                      )}
+                      {selected.basePrice != null && (
+                        <p className="text-sm text-gray-700 mt-1">단가: {selected.basePrice.toLocaleString()}원</p>
                       )}
                     </div>
                     <div className="flex flex-wrap items-end gap-4">
@@ -664,6 +667,20 @@ export function WoodTab() {
                                   <span>기본 단가</span>
                                   <span>{entry.item.unitPrice.toLocaleString()}원</span>
                                 </div>
+                                {entry.item.optionPrice !== 0 && (
+                                  <div className="flex justify-between">
+                                    <span>추가 옵션</span>
+                                    <span>
+                                      {entry.item.optionPrice! > 0 ? "+" : ""}{" "}
+                                      {entry.item.optionPrice!.toLocaleString()}원
+                                    </span>
+                                  </div>
+                                )}
+                                {entry.item.selectedOptions && entry.item.selectedOptions.length > 0 && (
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    옵션: {entry.item.selectedOptions.join(", ")}
+                                  </div>
+                                )}
                                 <div className="flex justify-between">
                                   <span>수량</span>
                                   <span>{entry.item.quantity}개</span>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { CartProvider } from '../contexts/CartContext';
 import { CalculatorTab } from './Quote/CalculatorTab';
-import { UdineTab } from './Quote/UdineTab';
+import { WoodinTab } from './Quote/WoodinTab';
 import { WoodTab } from './Quote/WoodTab';
 import { AIChatTab } from './Quote/AIChatTab';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
@@ -74,7 +74,7 @@ export function Quote() {
               <CalculatorTab />
             </TabsContent>
             <TabsContent value="woodin">
-              <UdineTab />
+              <WoodinTab />
             </TabsContent>
             <TabsContent value="wood">
               <WoodTab />

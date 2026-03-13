@@ -6,6 +6,7 @@
     <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/fix_schema.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/fix_schema_simple.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/scheme.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/woodin/00_woodin_reset.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/woodin/01_woodin_setup.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/woodin/02_woodin_ps_molding.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/woodin/03_woodin_wayne_molding.sql" dialect="MySQL" />
@@ -16,5 +17,11 @@
     <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/woodin/08_woodin_slim_frames.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/woodin/09_woodin_wood_frame_gird.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/woodin/10_woodin_frame_window.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/woodin/11_woodin_colors.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/woodin/11_woodin_natural_door_colors.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/woodin/12_woodin_hidden_door.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/woodin/13_woodin_abs_door.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/woodin/14_woodin_door_signature.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/Back-End/src/main/resources/woodin/15_woodin_abs_door_spec.sql" dialect="MySQL" />
   </component>
 </project>

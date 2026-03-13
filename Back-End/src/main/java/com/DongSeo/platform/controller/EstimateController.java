@@ -182,6 +182,10 @@ public class EstimateController {
                                 p.getBasePrice(),
                                 p.getDescription(),
                                 p.getSize(),
+                                p.getMinWidth(),
+                                p.getMaxWidth(),
+                                p.getMinHeight(),
+                                p.getMaxHeight(),
                                 compId,
                                 compName,
                                 categoryInfo

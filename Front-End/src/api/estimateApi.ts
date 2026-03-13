@@ -17,6 +17,11 @@ export interface Product {
   basePrice: number;
   description?: string;
   size?: string;
+  /** 도어 규격: 최소/최대 폭·길이(mm), null=제한없음 */
+  minWidth?: number | null;
+  maxWidth?: number | null;
+  minHeight?: number | null;
+  maxHeight?: number | null;
   companyId?: number;
   companyName?: string;
   category: {
